@@ -1,6 +1,7 @@
 // src/pages/AppointmentsPage.tsx
 import { Calendar, Video, Pill, Syringe } from "lucide-react";
 import { TimelineSection } from "@/components/molecules/TimeLineSection";
+import { AppointmentCalendar } from "@/components/molecules/AppointmentCalendar";
 
 // Mock data - replace with API calls in a real app
 const mockAppointments = [
@@ -68,6 +69,10 @@ export const AppointmentsPage = () => {
       <TimelineSection title="Treatments" items={mockTreatments} />
       <TimelineSection title="Vaccinations" items={mockVaccinations} />
       <TimelineSection title="Upcoming Care Dates" items={mockUpcoming} />
+
+      <div className="px-4 py-4">
+        <AppointmentCalendar />
+      </div>
     </div>
   );
 };

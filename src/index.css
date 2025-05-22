@@ -37,3 +37,25 @@ body {
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
+
+/* React Day Picker overrides */
+.rdp {
+  --rdp-cell-size: 36px;
+  --rdp-accent-color: #3b82f6;
+  --rdp-background-color: #f3f4f6;
+  --rdp-outline: 2px solid var(--rdp-accent-color);
+  --rdp-outline-selected: 2px solid rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+
+.rdp-day_selected:not([disabled]) {
+  background-color: blue;
+}
+
+.rdp-day_selected:not([disabled]):hover {
+  background-color: blue;
+}
+
+.rdp-day_today:not(.rdp-day_selected) {
+  background-color: blue;
+}
