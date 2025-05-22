@@ -1,11 +1,6 @@
 import { cn } from "@/lib/utils";
 import React from "react";
-
-type TextProps = {
-  variant?: "h1" | "h2" | "h3" | "body" | "caption";
-  children: React.ReactNode;
-  className?: string;
-};
+import type { TextProps } from "@/lib/types/types.d";
 
 export const Text = ({ variant = "body", children, className }: TextProps) => {
   const baseStyles = {

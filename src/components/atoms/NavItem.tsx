@@ -1,12 +1,6 @@
 // src/components/atoms/NavItem.tsx
 import { cn } from "@/lib/utils";
-
-type NavItemProps = {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  className?: string;
-};
+import type { NavItemProps } from "@/lib/types/types.d";
 
 export const NavItem = ({
   icon,

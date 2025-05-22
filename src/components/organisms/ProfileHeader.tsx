@@ -2,11 +2,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Text } from "../atoms/Text";
-
-type ProfileHeaderProps = {
-  title: string;
-  onBack?: () => void;
-};
+import type { ProfileHeaderProps } from "@/lib/types/types.d";
 
 export const ProfileHeader = ({ title, onBack }: ProfileHeaderProps) => {
   const navigate = useNavigate();

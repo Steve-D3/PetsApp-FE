@@ -1,11 +1,5 @@
 import { cn } from "@/lib/utils";
-
-type MobileNavItemProps = {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  className?: string;
-};
+import type { MobileNavItemProps } from "@/lib/types/types.d";
 
 export const MobileNavItem = ({
   icon,

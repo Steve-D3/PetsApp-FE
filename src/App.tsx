@@ -13,6 +13,7 @@ import LoginPage from "./features/auth/pages/LoginPage";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
+import PetsPage from "./pages/PetsPage";
 import { useAuth } from "./features/auth/hooks/useAuth";
 
 // Create a client for React Query
@@ -106,6 +107,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pets"
+              element={
+                <ProtectedRoute>
+                  <PetsPage />
                 </ProtectedRoute>
               }
             />

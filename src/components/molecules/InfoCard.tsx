@@ -1,15 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Text } from "../atoms/Text";
 import { cn } from "@/lib/utils";
-
-// to types
-type InfoCardProps = {
-  title: string;
-  subtitle: string;
-  icon?: React.ReactNode;
-  onClick?: () => void;
-  className?: string;
-};
+import type { InfoCardProps } from "@/lib/types/types.d";
 
 export const InfoCard = ({
   title,
