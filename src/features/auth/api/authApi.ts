@@ -10,6 +10,15 @@ interface User {
   current_team_id?: number | null;
   profile_photo_path?: string | null;
   profile_photo_url?: string;
+  data?: {
+    id: string;
+    name?: string;
+    email?: string;
+    role?: string;
+    current_team_id?: number | null;
+    profile_photo_path?: string | null;
+    profile_photo_url?: string;
+  };
 }
 
 interface LoginResponse {
@@ -97,7 +106,7 @@ export const authApi = {
    */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      console.log('Sending login request to /login with:', credentials);
+      console.log("Sending login request to /login with:", credentials);
       const response = await api.post<{
         access_token: string;
         token_type: string;
@@ -111,24 +120,24 @@ export const authApi = {
           profile_photo_url: string;
         };
       }>("/login", credentials);
-      
-      console.log('API response:', response.data);
-      
+
+      console.log("API response:", response.data);
+
       const { access_token: token, user } = response.data;
-      
+
       if (!token) {
-        console.error('No access_token in response:', response.data);
-        throw new Error('Authentication failed: No access token received');
+        console.error("No access_token in response:", response.data);
+        throw new Error("Authentication failed: No access token received");
       }
-      
+
       if (!user) {
-        console.error('No user data in response:', response.data);
-        throw new Error('Authentication failed: No user data received');
+        console.error("No user data in response:", response.data);
+        throw new Error("Authentication failed: No user data received");
       }
-      
+
       // Store the token
       localStorage.setItem("token", token);
-      
+
       // Map the API user to our User type
       const mappedUser: User = {
         id: String(user.id),
@@ -137,34 +146,44 @@ export const authApi = {
         role: user.role,
         current_team_id: user.current_team_id,
         profile_photo_path: user.profile_photo_path,
-        profile_photo_url: user.profile_photo_url
+        profile_photo_url: user.profile_photo_url,
       };
-      
+
       return {
         user: mappedUser,
-        token
+        token,
       };
     } catch (error: unknown) {
-      console.error('Login API error:', error);
-      
+      console.error("Login API error:", error);
+
       // Handle Axios error response
       if (axios.isAxiosError(error)) {
         if (error.response) {
           // The request was made and the server responded with a status code
           // that falls out of the range of 2xx
           const errorData = error.response.data || {};
-          const errorMessage = errorData.message || errorData.error || 'Login failed';
-          console.error('Server responded with error:', error.response.status, errorMessage);
-          throw new Error(`Login failed: ${errorMessage} (${error.response.status})`);
+          const errorMessage =
+            errorData.message || errorData.error || "Login failed";
+          console.error(
+            "Server responded with error:",
+            error.response.status,
+            errorMessage
+          );
+          throw new Error(
+            `Login failed: ${errorMessage} (${error.response.status})`
+          );
         } else if (error.request) {
           // The request was made but no response was received
-          console.error('No response received:', error.request);
-          throw new Error('No response from server. Please check your connection.');
+          console.error("No response received:", error.request);
+          throw new Error(
+            "No response from server. Please check your connection."
+          );
         }
       }
-      
+
       // Handle other types of errors
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
       throw new Error(`Login failed: ${errorMessage}`);
     }
   },
@@ -176,37 +195,42 @@ export const authApi = {
    */
   async register(userData: RegisterData): Promise<RegisterResponse> {
     try {
-      console.log('Sending registration request with:', userData);
+      console.log("Sending registration request with:", userData);
       const response = await api.post("/register", userData);
-      
+
       // The API returns the user data directly
       const user = response.data as User;
-      
+
       // If the response includes a token, store it
       if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
+        localStorage.setItem("token", response.data.token);
       }
-      
+
       return { user };
     } catch (error) {
-      console.error('Registration API error:', error);
-      
+      console.error("Registration API error:", error);
+
       if (axios.isAxiosError(error)) {
         // Handle validation errors (422)
         if (error.response?.status === 422 && error.response.data) {
-          const errorData = error.response.data as { errors?: Record<string, string[]> };
+          const errorData = error.response.data as {
+            errors?: Record<string, string[]>;
+          };
           const errorMessages = Object.entries(errorData.errors || {})
-            .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-            .join('\n');
+            .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
+            .join("\n");
           throw new Error(`Validation failed: ${errorMessages}`);
         }
-        
+
         // Handle other API errors
-        const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+        const errorMessage =
+          error.response?.data?.message ||
+          error.message ||
+          "Registration failed";
         throw new Error(errorMessage);
       }
-      
-      throw new Error('An unknown error occurred during registration');
+
+      throw new Error("An unknown error occurred during registration");
     }
   },
 
