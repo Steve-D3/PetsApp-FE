@@ -55,3 +55,26 @@ export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
 };
+
+export type TimelineItem = {
+  id: string;
+  date: string;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  actionIcon?: React.ReactNode;
+};
+
+export type TimelineSection = {
+  id: string;
+  title: string;
+  items: TimelineItem[];
+};
+
+export type TimelineItemProps = React.HTMLAttributes<HTMLDivElement> & {
+  date: string;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  actionIcon?: React.ReactNode;
+};
