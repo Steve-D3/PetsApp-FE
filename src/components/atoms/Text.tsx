@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import React from "react";
 import type { TextProps } from "@/lib/types/types.d";
 
 export const Text = ({ variant = "body", children, className }: TextProps) => {

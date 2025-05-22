@@ -70,7 +70,7 @@ export const AppointmentsPage = () => {
       <TimelineSection title="Vaccinations" items={mockVaccinations} />
       <TimelineSection title="Upcoming Care Dates" items={mockUpcoming} />
 
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 flex justify-center">
         <AppointmentCalendar />
       </div>
     </div>
