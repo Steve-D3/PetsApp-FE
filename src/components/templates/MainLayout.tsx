@@ -2,8 +2,9 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Home, CalendarDays, User, LogOut, Settings, Menu } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { MobileNavItem } from "../atoms/MobileNavItem";
+import { NavItem } from "../atoms/NavItem";
 
 export const MainLayout = () => {
   const auth = useAuth();
@@ -147,59 +148,5 @@ export const MainLayout = () => {
     </div>
   );
 };
-
-// NavItem component for desktop
-const NavItem = ({
-  icon,
-  label,
-  onClick,
-  className = "",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  className?: string;
-}) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors",
-      "flex items-center justify-center",
-      "relative group",
-      className
-    )}
-    aria-label={label}
-  >
-    {icon}
-    <span className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-      {label}
-    </span>
-  </button>
-);
-
-// MobileNavItem component for mobile menu
-const MobileNavItem = ({
-  icon,
-  label,
-  onClick,
-  className = "",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  className?: string;
-}) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "w-full px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-3",
-      "text-gray-700 hover:bg-gray-100",
-      className
-    )}
-  >
-    <span className="text-gray-500">{icon}</span>
-    <span>{label}</span>
-  </button>
-);
 
 export default MainLayout;

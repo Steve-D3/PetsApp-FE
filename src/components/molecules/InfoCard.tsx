@@ -2,21 +2,30 @@ import { ChevronRight } from "lucide-react";
 import { Text } from "../atoms/Text";
 import { cn } from "@/lib/utils";
 
+// to types
 type InfoCardProps = {
   title: string;
   subtitle: string;
   icon?: React.ReactNode;
   onClick?: () => void;
+  className?: string;
 };
 
-export const InfoCard = ({ title, subtitle, icon, onClick }: InfoCardProps) => {
+export const InfoCard = ({
+  title,
+  subtitle,
+  icon,
+  onClick,
+  className,
+}: InfoCardProps) => {
   return (
     <div
       onClick={onClick}
       className={cn(
         "flex items-center p-4 bg-white rounded-lg border border-gray-100",
         "transition-all hover:shadow-sm",
-        onClick && "cursor-pointer hover:bg-gray-50"
+        onClick && "cursor-pointer hover:bg-gray-50",
+        className
       )}
     >
       {icon && <div className="p-2 bg-gray-50 rounded-lg mr-4">{icon}</div>}
