@@ -36,6 +36,12 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                   <Link to="#" className="text-gray-600 hover:text-gray-900">
                     Accounts
                   </Link>
+                  <Link
+                    to="/profile"
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    Profile
+                  </Link>
                 </>
               ) : (
                 <>
@@ -65,3 +71,5 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     </div>
   );
 };
+
+export default MainLayout;
