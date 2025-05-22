@@ -5,7 +5,6 @@ import {
   HeartPulse,
   Calendar,
   PawPrint,
-  Clock,
   Plus,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -112,7 +111,7 @@ const DashboardPage = () => {
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <Button variant="outline" size="icon" className="shrink-0">
+          <Button variant="outline" size="sm" className="shrink-0">
             <Bell className="h-5 w-5" />
           </Button>
         </div>

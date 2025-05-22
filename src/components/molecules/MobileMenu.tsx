@@ -1,5 +1,5 @@
 import { MobileNavItem } from "@/components/atoms/MobileNavItem";
-import { Home, CalendarDays, User, Settings, LogOut } from "lucide-react";
+import { Home, CalendarDays, User, Settings, LogOut, Cat } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
@@ -36,20 +36,14 @@ export const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
               }}
             />
             <MobileNavItem
-              icon={<User />}
-              label="Profile"
-              onClick={() => {
-                navigate("/profile");
-                onClose();
-              }}
+              icon={<Cat />}
+              label="Pets"
+              onClick={() => navigate("/pets")}
             />
             <MobileNavItem
               icon={<Settings />}
               label="Settings"
-              onClick={() => {
-                navigate("/settings");
-                onClose();
-              }}
+              onClick={() => navigate("/settings")}
             />
             <MobileNavItem
               icon={<LogOut />}
