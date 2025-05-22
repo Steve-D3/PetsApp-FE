@@ -1,75 +1,205 @@
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import useAuth from "../../features/auth/hooks/useAuth";
+// src/components/templates/MainLayout.tsx
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Home, CalendarDays, User, LogOut, Settings, Menu } from "lucide-react";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
-interface MainLayoutProps {
-  children: ReactNode;
-}
-
-export const MainLayout = ({ children }: MainLayoutProps) => {
+export const MainLayout = () => {
   const auth = useAuth();
+  const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <main className="flex-grow">{children}</main>
-      <footer className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              PetsApp
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center">
+              <span className="text-xl font-bold text-gray-900">PetsApp</span>
             </Link>
-            <nav className="flex items-center space-x-4">
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-2">
               {auth.isAuthenticated ? (
                 <>
-                  <span className="text-gray-700">
-                    Welcome, {auth.user?.name}
-                  </span>
-                  <button
+                  <NavItem
+                    icon={<Home className="h-5 w-5" />}
+                    label="Home"
+                    onClick={() => navigate("/")}
+                  />
+                  <NavItem
+                    icon={<CalendarDays className="h-5 w-5" />}
+                    label="Appointments"
+                    onClick={() => navigate("/appointments")}
+                  />
+                  <NavItem
+                    icon={<User className="h-5 w-5" />}
+                    label="Profile"
+                    onClick={() => navigate("/profile")}
+                  />
+                  <NavItem
+                    icon={<Settings className="h-5 w-5" />}
+                    label="Settings"
+                    onClick={() => navigate("/settings")}
+                  />
+                  <NavItem
+                    icon={<LogOut className="h-5 w-5" />}
+                    label="Logout"
                     onClick={() => auth.logout?.()}
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    Logout
-                  </button>
-                  <Link to="#" className="text-gray-600 hover:text-gray-900">
-                    Appointments
-                  </Link>
-                  <Link to="#" className="text-gray-600 hover:text-gray-900">
-                    Accounts
-                  </Link>
-                  <Link
-                    to="/profile"
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    Profile
-                  </Link>
+                    className="text-red-500 hover:text-red-600"
+                  />
                 </>
               ) : (
                 <>
-                  <Link
-                    to="/login"
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="text-gray-600 hover:text-gray-900"
-                  >
-                    Register
-                  </Link>
+                  <NavItem
+                    icon={<User className="h-5 w-5" />}
+                    label="Login"
+                    onClick={() => navigate("/login")}
+                  />
                 </>
               )}
             </nav>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+            </div>
           </div>
         </div>
-      </footer>
-      {/* <footer className="bg-white border-t border-gray-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} PetsApp. All rights reserved.
+
+        {/* Mobile menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              {auth.isAuthenticated ? (
+                <>
+                  <MobileNavItem
+                    icon={<Home className="h-5 w-5" />}
+                    label="Home"
+                    onClick={() => {
+                      navigate("/");
+                      setIsMenuOpen(false);
+                    }}
+                  />
+                  <MobileNavItem
+                    icon={<CalendarDays className="h-5 w-5" />}
+                    label="Appointments"
+                    onClick={() => {
+                      navigate("/appointments");
+                      setIsMenuOpen(false);
+                    }}
+                  />
+                  <MobileNavItem
+                    icon={<User className="h-5 w-5" />}
+                    label="Profile"
+                    onClick={() => {
+                      navigate("/profile");
+                      setIsMenuOpen(false);
+                    }}
+                  />
+                  <MobileNavItem
+                    icon={<Settings className="h-5 w-5" />}
+                    label="Settings"
+                    onClick={() => {
+                      navigate("/settings");
+                      setIsMenuOpen(false);
+                    }}
+                  />
+                  <MobileNavItem
+                    icon={<LogOut className="h-5 w-5" />}
+                    label="Logout"
+                    onClick={() => {
+                      auth.logout?.();
+                      setIsMenuOpen(false);
+                    }}
+                    className="text-red-500 hover:bg-red-50"
+                  />
+                </>
+              ) : (
+                <MobileNavItem
+                  icon={<User className="h-5 w-5" />}
+                  label="Login"
+                  onClick={() => {
+                    navigate("/login");
+                    setIsMenuOpen(false);
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Outlet />
         </div>
-      </footer> */}
+      </main>
     </div>
   );
 };
+
+// NavItem component for desktop
+const NavItem = ({
+  icon,
+  label,
+  onClick,
+  className = "",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors",
+      "flex items-center justify-center",
+      "relative group",
+      className
+    )}
+    aria-label={label}
+  >
+    {icon}
+    <span className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+      {label}
+    </span>
+  </button>
+);
+
+// MobileNavItem component for mobile menu
+const MobileNavItem = ({
+  icon,
+  label,
+  onClick,
+  className = "",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "w-full px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-3",
+      "text-gray-700 hover:bg-gray-100",
+      className
+    )}
+  >
+    <span className="text-gray-500">{icon}</span>
+    <span>{label}</span>
+  </button>
+);
 
 export default MainLayout;

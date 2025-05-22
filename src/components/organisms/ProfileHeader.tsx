@@ -20,16 +20,17 @@ export const ProfileHeader = ({ title, onBack }: ProfileHeaderProps) => {
   };
 
   return (
-    <div className="flex items-center p-4 pb-2 justify-between sticky top-0 z-10 bg-white">
+    <div className="flex items-center p-4 md:px-6 md:py-4 justify-between sticky top-0 z-10 bg-white border-b border-gray-100">
       <button
         onClick={handleBack}
-        className="text-gray-900 flex size-12 shrink-0 items-center"
+        className="text-gray-900 flex size-12 shrink-0 items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
       >
         <ArrowLeft className="h-6 w-6" />
       </button>
-      <Text variant="h2" className="flex-1 text-center pr-12">
-        {title}'s Profile
+      <Text variant="h2" className="flex-1 text-center md:text-left md:pl-4">
+        {title}
       </Text>
+      <div className="w-12" /> {/* Spacer for alignment */}
     </div>
   );
 };
