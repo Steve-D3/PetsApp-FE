@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MainLayout } from "../components/layout/MainLayout";
+import { MainLayout } from "../components/templates/MainLayout";
 import useAuth from "../features/auth/hooks/useAuth";
 import {
   Calendar,
