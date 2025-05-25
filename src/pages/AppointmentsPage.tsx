@@ -5,6 +5,7 @@ import { AppointmentCalendar } from "@/components/molecules/AppointmentCalendar"
 import { useEffect, useState } from "react";
 import petsApi from "@/features/pets/api/petsApi";
 import type { Pet } from "@/features/pets/api/petsApi";
+import { useNavigate } from "react-router-dom";
 
 // Mock data - replace with API calls in a real app
 const mockAppointments = [
@@ -59,8 +60,6 @@ const mockUpcoming = [
   },
 ];
 
-import { useNavigate } from 'react-router-dom';
-
 export const AppointmentsPage = () => {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,14 +69,14 @@ export const AppointmentsPage = () => {
   useEffect(() => {
     const fetchPets = async () => {
       try {
-        const token = localStorage.getItem('token');
-        
+        const token = localStorage.getItem("token");
+
         // Check if user is authenticated
         if (!token) {
-          setError('Please log in to view your pets');
+          setError("Please log in to view your pets");
           setLoading(false);
           // Optionally redirect to login page
-          // navigate('/login');
+          navigate("/login");
           return;
         }
 
@@ -86,15 +85,15 @@ export const AppointmentsPage = () => {
         setError(null);
       } catch (error) {
         if (error instanceof Error) {
-          if (error.message.includes('No authentication token')) {
-            setError('Session expired. Please log in again.');
+          if (error.message.includes("No authentication token")) {
+            setError("Session expired. Please log in again.");
             // Optionally clear any invalid token
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem("auth_token");
           } else {
             setError(`Failed to fetch pets: ${error.message}`);
           }
         } else {
-          setError('An unexpected error occurred');
+          setError("An unexpected error occurred");
         }
       } finally {
         setLoading(false);
@@ -111,14 +110,14 @@ export const AppointmentsPage = () => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="p-4 bg-red-50 text-red-700 rounded-md">
         <p>{error}</p>
-        {error.includes('log in') && (
-          <button 
-            onClick={() => navigate('/login')}
+        {error.includes("log in") && (
+          <button
+            onClick={() => navigate("/login")}
             className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Go to Login
@@ -130,7 +129,7 @@ export const AppointmentsPage = () => {
   return (
     <div className="space-y-1">
       <div>
-        <h2>My Pets</h2>
+        <h2>My Pets {pets.length}</h2>
         {pets.map((pet) => (
           <div key={pet.id}>
             <h3>{pet.name}</h3>
