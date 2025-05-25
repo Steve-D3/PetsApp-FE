@@ -67,11 +67,19 @@ const DashboardPage = () => {
               })
             );
 
-            // Filter out nulls and set the appointments
+            // Filter out nulls, sort by date, and set the appointments
             const validAppointments = petAppointments.filter(
               Boolean
             ) as (Appointment & { petName: string })[];
-            setAppointments(validAppointments);
+
+            // Sort appointments by start_time in ascending order
+            const sortedAppointments = [...validAppointments].sort(
+              (a, b) =>
+                new Date(a.start_time).getTime() -
+                new Date(b.start_time).getTime()
+            );
+
+            setAppointments(sortedAppointments);
           } catch (error) {
             console.error("Error processing appointments:", error);
             // Don't fail the whole page if appointments fail
@@ -163,21 +171,46 @@ const DashboardPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 pb-2 bg-gray-50">
-        <h2 className="text-[#101518] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pl-12">
-          Welcome back, {user?.name}
-        </h2>
-      </div>
+      {/* Hero Section */}
+      <div className="relative w-full overflow-hidden rounded-lg mx-4 my-6 shadow-lg">
+        {/* Background Image with gradient overlay */}
+        <div
+          className="w-full h-64 bg-center bg-cover bg-no-repeat relative"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 100%), " +
+              "url(https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80)",
+          }}
+        >
+          {/* Content */}
+          <div className="absolute inset-0 flex flex-col justify-center p-8 text-white">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              Welcome back, {user?.name?.split(" ")[0]}!
+            </h1>
+            <p className="text-lg md:text-xl mb-6 text-gray-200 max-w-2xl">
+              Keep track of your pets' health and upcoming appointments in one
+              place.
+            </p>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => navigate("/appointments/new")}
+                className="px-6 py-2.5 bg-white text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              >
+                Book Appointment
+              </button>
+              <button
+                onClick={() => navigate("/pets")}
+                className="px-6 py-2.5 border-2 border-white text-white font-medium rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors duration-200"
+              >
+                View Pets
+              </button>
+            </div>
+          </div>
 
-      {/* Hero Image */}
-      <div
-        className="w-full bg-center bg-no-repeat bg-cover min-h-[218px]"
-        style={{
-          backgroundImage:
-            "url(https://lh3.googleusercontent.com/aida-public/AB6AXuAmg8l2k9pfYd17Zj3FlArUYKAmM-R8oBeT7Pr15GgevI2bV4FGdycODEzAC8OQwnUglP6wmyykrll9JudMS_32zcAzU6_xuQHyI8h1pKzd1n82MS1WlFT_T2ibbrarAHYEWF6Jp8Ho11xGTdsoB9bW-WPVunLH1gVEG0LCnzMc5GAB4GvtZN9sT4oIPtuRzuInuqmZ2SruurKSGbqjD0ydlzf5mFfvBaUXjZOwCVQ8063XatgpdhBJBCK5UgA_GEKRArpqLx4iqvw)",
-        }}
-      />
+          {/* Decorative elements */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/30 to-transparent"></div>
+        </div>
+      </div>
 
       {/* Upcoming Appointments */}
       <div className="p-4">

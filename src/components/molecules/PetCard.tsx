@@ -12,8 +12,11 @@ export const PetCard = ({ pet }: { pet: Pet }) => {
 
   return (
     <Card
-      onClick={() => navigate(`/profile`)}
+      onClick={() => navigate(`/pets/${pet.id}`)}
       className="cursor-pointer hover:shadow-md transition-shadow"
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && navigate(`/pets/${pet.id}`)}
     >
       <div className="flex items-center space-x-4">
         <img
