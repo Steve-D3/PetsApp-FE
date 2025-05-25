@@ -2,32 +2,21 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import petsApi from "@/features/pets/api/petsApi";
-import type { Pet } from "@/features/pets/api/petsApi";
-
-interface Appointment {
-  id: string;
-  date: string;
-  doctor: string;
-  type: string;
-  image: string;
-}
+import petsApi, {
+  type Pet,
+  type Appointment,
+} from "@/features/pets/api/petsApi";
 
 const DashboardPage = () => {
   const { user } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Debug: Log user data to console
   useEffect(() => {
-    console.log("Pets data:", pets);
-    console.log("User data:", user);
-  }, [user, pets]);
-
-  useEffect(() => {
-    const fetchPets = async () => {
+    const fetchPetsAndAppointments = async () => {
       try {
         const token = localStorage.getItem("token");
 
@@ -35,22 +24,68 @@ const DashboardPage = () => {
         if (!token) {
           setError("Please log in to view your pets");
           setLoading(false);
-          // Optionally redirect to login page
           navigate("/login");
           return;
         }
 
-        const response = await petsApi.getUserPets();
-        setPets(response);
+        // Fetch pets
+        const petsResponse = await petsApi.getUserPets();
+        setPets(petsResponse);
+
+        // Fetch appointments for all pets
+        if (petsResponse.length > 0) {
+          try {
+            // Get current date to filter future appointments
+            const now = new Date();
+
+            // Fetch appointments for each pet and get the first upcoming one
+            const petAppointments = await Promise.all(
+              petsResponse.map(async (pet) => {
+                try {
+                  const appointments = await petsApi.getPetAppointments(pet.id);
+
+                  // Filter future appointments and sort by date
+                  const upcomingAppointments = appointments
+                    .filter((appt) => new Date(appt.start_time) > now)
+                    .sort(
+                      (a, b) =>
+                        new Date(a.start_time).getTime() -
+                        new Date(b.start_time).getTime()
+                    );
+
+                  // Return the first upcoming appointment or null if none
+                  return upcomingAppointments.length > 0
+                    ? { ...upcomingAppointments[0], petName: pet.name }
+                    : null;
+                } catch (error) {
+                  console.error(
+                    `Error fetching appointments for pet ${pet.id}:`,
+                    error
+                  );
+                  return null;
+                }
+              })
+            );
+
+            // Filter out nulls and set the appointments
+            const validAppointments = petAppointments.filter(
+              Boolean
+            ) as (Appointment & { petName: string })[];
+            setAppointments(validAppointments);
+          } catch (error) {
+            console.error("Error processing appointments:", error);
+            // Don't fail the whole page if appointments fail
+          }
+        }
+
         setError(null);
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes("No authentication token")) {
             setError("Session expired. Please log in again.");
-            // Optionally clear any invalid token
-            localStorage.removeItem("auth_token");
+            localStorage.removeItem("token");
           } else {
-            setError(`Failed to fetch pets: ${error.message}`);
+            setError(`Failed to fetch data: ${error.message}`);
           }
         } else {
           setError("An unexpected error occurred");
@@ -60,7 +95,7 @@ const DashboardPage = () => {
       }
     };
 
-    fetchPets();
+    fetchPetsAndAppointments();
   }, [navigate]);
 
   if (loading) {
@@ -87,32 +122,51 @@ const DashboardPage = () => {
     );
   }
 
-  // Mock data - replace with real API calls
-  const appointments: Appointment[] = [
-    {
-      id: "1",
-      date: "Tomorrow",
-      doctor: "Dr. Harper",
-      type: "Vet Appointment",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuCEAhqHTC8AWrKe6dKoc7Jd1HNstupYJlmL21C1HDf9BFRJ56F5Pd1FJFY4vtY0T_x9i-kQmsfEbEkFimF6laMTyQzzDNh2f6dqrgVhHp1e-A12lviHFxBDFgyW0cwi_6qC5Bjl0sVdxB4vVCxenD0o1NoqCpLOj1EHpYLDrf-qew124QI6ZqgBXMt872e3nd8B2c2LUvHKzknEro3KmSVxPiqr6HEUlTuzSAQsEro2xWTvfvTMDoYafDd4CEjxwGJ71H8vSZVxMf4",
-    },
-    {
-      id: "2",
-      date: "Today",
-      doctor: "Max's Antibiotics",
-      type: "Medication Reminder",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuCGSEPW485WJ1N_rNBO1Bqc6VSPdTrmoSNDnL_MR0Q9eIRTjI-gzOTTjVIrTfFFsa135ip9Y5dSdXjkmibZXUND_9e1bpa2Yv-QsaMzmMfJUXuPb88ahMsbYdF1GsSnUfW8g1t9tEmqWcM81nWrtiQTbboU2WsjGkE0pZ3L_NKDvpChCkHj7wuvBUp96S9b_kGUea2DvV4GCx5VvXdynFaHB31s9Gj5UZxxmVQh59x0E8OuiOGU0iRUSGa7CPKmcGbhLX_EIfsaeE0",
-    },
-  ];
+  // Format date to be more readable
+  const formatAppointmentDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Check if the date is today, tomorrow, or another day
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow";
+    }
+
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    };
+    return date.toLocaleDateString(undefined, options);
+  };
+
+  // Format time range for an appointment
+  const formatAppointmentTime = (startTime: string, endTime: string) => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    };
+
+    return `${start.toLocaleTimeString(
+      undefined,
+      timeOptions
+    )} - ${end.toLocaleTimeString(undefined, timeOptions)}`;
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between p-4 pb-2 bg-gray-50">
         <h2 className="text-[#101518] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pl-12">
-          Welcome back, {user?.data?.name}
+          Welcome back, {user?.name}
         </h2>
       </div>
 
@@ -126,31 +180,75 @@ const DashboardPage = () => {
       />
 
       {/* Upcoming Appointments */}
-      <h2 className="text-[#101518] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">
-        Upcoming Appointments
-      </h2>
-
-      {appointments.map((appt) => (
-        <div key={appt.id} className="px-4 py-2">
-          <div className="flex items-stretch justify-between gap-4 rounded-xl bg-white p-4 shadow">
-            <div className="flex flex-col gap-1 flex-[2_2_0px]">
-              <p className="text-[#5c778a] text-sm font-normal leading-normal">
-                {appt.date}
-              </p>
-              <p className="text-[#101518] text-base font-bold leading-tight">
-                {appt.doctor}
-              </p>
-              <p className="text-[#5c778a] text-sm font-normal leading-normal">
-                {appt.type}
-              </p>
-            </div>
-            <div
-              className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-xl flex-1"
-              style={{ backgroundImage: `url(${appt.image})` }}
-            />
+      <div className="p-4">
+        <h3 className="text-lg font-semibold mb-3">Upcoming Appointments</h3>
+        {appointments.length === 0 ? (
+          <p className="text-gray-500 text-center py-4">
+            No upcoming appointments
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {appointments.map((appt) => (
+              <div
+                key={appt.id}
+                className="flex items-start p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="w-12 h-12 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center mr-3">
+                  <svg
+                    className="w-6 h-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-medium text-gray-900 truncate">
+                      {appt.pet.name}'s Appointment
+                    </h4>
+                    <span className="text-sm text-gray-500 whitespace-nowrap ml-2">
+                      {formatAppointmentDate(appt.start_time)}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-sm text-gray-600">
+                    <p>With Dr. {appt.veterinarian.clinic.name}</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {formatAppointmentTime(appt.start_time, appt.end_time)}
+                    </p>
+                    {appt.notes && (
+                      <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                        {appt.notes}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        appt.status === "scheduled"
+                          ? "bg-blue-100 text-blue-800"
+                          : appt.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {appt.status.charAt(0).toUpperCase() +
+                        appt.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      ))}
+        )}
+      </div>
 
       {/* Pet Snapshot */}
       <h2 className="text-[#101518] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">

@@ -2,6 +2,63 @@ import axios from "axios";
 import { authApi } from "../../../features/auth/api/authApi";
 
 // Types
+export interface MedicalRecord {
+  id: number;
+  record_date: string;
+  chief_complaint: string;
+  history: string;
+  physical_examination: string;
+  diagnosis: string;
+  treatment_plan: string;
+  medications: string | null;
+  notes: string | null;
+  weight: string;
+  temperature: string;
+  heart_rate: number;
+  respiratory_rate: number;
+  follow_up_required: boolean;
+  follow_up_date: string | null;
+}
+
+export interface Clinic {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  country: string;
+  phone: string;
+  email: string;
+  website: string;
+}
+
+export interface Veterinarian {
+  id: number;
+  user_id: number;
+  license_number: string;
+  specialty: string;
+  biography: string;
+  phone_number: string;
+  off_days: string[];
+  clinic: Clinic;
+}
+
+export interface PetWithRecords extends Omit<Pet, "owner"> {
+  medical_records: MedicalRecord[];
+}
+
+export interface Appointment {
+  id: number;
+  pet_id: number;
+  veterinarian_id: number;
+  start_time: string;
+  end_time: string;
+  status: string;
+  notes: string;
+  pet: PetWithRecords;
+  veterinarian: Veterinarian;
+}
+
 export interface PetOwner {
   id: number;
   name: string;
@@ -43,7 +100,6 @@ api.interceptors.request.use(
   async (config) => {
     const token = localStorage.getItem("token"); // Changed from 'auth_token' to 'token'
     if (token) {
-      console.log(localStorage);
       config.headers.Authorization = `Bearer ${token}`;
     } else {
       console.warn("No token found in localStorage");
@@ -65,8 +121,6 @@ const petsApi = {
     try {
       // Get the current user to ensure we're authenticated and get the correct user ID
       const user = await authApi.getCurrentUser();
-      console.log("Current user object:", user);
-
       if (!user) {
         throw new Error("No authenticated user found. Please log in.");
       }
@@ -109,6 +163,13 @@ const petsApi = {
       console.error(`Error fetching pet with ID ${petId}:`, error);
       throw error;
     }
+  },
+
+  async getPetAppointments(petId: number): Promise<Appointment[]> {
+    const response = await api.get<{ data: Appointment[] }>(
+      `/appointments?pet_id=${petId}`
+    );
+    return response.data.data || [];
   },
 };
 
