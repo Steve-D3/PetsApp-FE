@@ -2,10 +2,11 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Calendar as CalendarIcon,
-  Video,
-  Syringe,
   Plus,
   Loader2,
+  ClockAlert,
+  Syringe,
+  NotebookPenIcon,
 } from "lucide-react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -19,17 +20,20 @@ import { Button } from "@/components/atoms/Button";
 import petsApi from "@/features/pets/api/petsApi";
 
 // Helper function to map appointment status to event type and color
-const getAppointmentDetails = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return { type: "completed", color: "#10B981" };
-    case "scheduled":
-      return { type: "confirmed", color: "#3B82F6" };
-    case "cancelled":
-      return { type: "cancelled", color: "#EF4444" };
-    default:
-      return { type: "pending", color: "#6B7280" };
-  }
+const getAppointmentDetails = (
+  status: string
+): {
+  type: "completed" | "confirmed" | "cancelled" | "pending";
+  color: string;
+} => {
+  const statusLower = status.toLowerCase();
+  if (statusLower === "completed")
+    return { type: "completed", color: "#10B981" };
+  if (statusLower === "scheduled" || statusLower === "confirmed")
+    return { type: "confirmed", color: "#3B82F6" };
+  if (statusLower === "cancelled")
+    return { type: "cancelled", color: "#EF4444" };
+  return { type: "pending", color: "#6B7280" };
 };
 
 interface CalendarEvent {
@@ -58,13 +62,15 @@ const formatEventsForTimeline = (events: CalendarEvent[], type: string) => {
       subtitle: event.extendedProps.doctor,
       icon:
         type === "completed" ? (
-          <CalendarIcon className="h-5 w-5 text-blue-500" />
-        ) : type === "confirmed" ? (
           <CalendarIcon className="h-5 w-5 text-green-500" />
+        ) : type === "confirmed" ? (
+          <CalendarIcon className="h-5 w-5 text-blue-500" />
+        ) : type === "pending" ? (
+          <ClockAlert className="h-5 w-5 text-yellow-500" />
         ) : (
-          <Syringe className="h-5 w-5 text-purple-500" />
+          <Syringe className="h-5 w-5 text-red-500" />
         ),
-      actionIcon: <Video className="h-5 w-5 text-gray-500" />,
+      actionIcon: <NotebookPenIcon className="h-5 w-5 text-gray-500" />,
     }));
 };
 
@@ -78,33 +84,33 @@ export const AppointmentsPage = () => {
     const fetchUserPetsAndAppointments = async () => {
       try {
         setLoading(true);
-        
+
         // First, get all the user's pets
         const userPets = await petsApi.getUserPets();
-        
+
         if (userPets.length === 0) {
           setEvents([]);
           return;
         }
-        
+
         // Get all appointments for each pet
-        const petAppointmentsPromises = userPets.map(pet => 
+        const petAppointmentsPromises = userPets.map((pet) =>
           petsApi.getPetAppointments(pet.id)
         );
-        
+
         const appointmentsResults = await Promise.all(petAppointmentsPromises);
-        
+
         // Flatten the array of arrays into a single array of appointments
         const allAppointments = appointmentsResults.flat();
-        
+
         const formattedEvents = allAppointments.map((appointment) => {
           const { type, color } = getAppointmentDetails(appointment.status);
           // Find the pet details for this appointment
-          const pet = userPets.find(p => p.id === appointment.pet_id);
-          
+          const pet = userPets.find((p) => p.id === appointment.pet_id);
+
           return {
             id: appointment.id.toString(),
-            title: appointment.notes || `Appointment for ${pet?.name || 'Pet'}`,
+            title: appointment.notes || `Appointment for ${pet?.name || "Pet"}`,
             start: appointment.start_time,
             end: appointment.end_time,
             extendedProps: {
@@ -193,12 +199,12 @@ export const AppointmentsPage = () => {
   );
   const recentConsultations = events.filter(
     (event) =>
-      event.extendedProps.type === "consultation" &&
+      event.extendedProps.type === "completed" &&
       new Date(event.start as Date) <= new Date()
   );
   const recentVaccinations = events.filter(
     (event) =>
-      event.extendedProps.type === "vaccination" &&
+      event.extendedProps.type === "confirmed" &&
       new Date(event.start as Date) <= new Date()
   );
 
@@ -225,7 +231,7 @@ export const AppointmentsPage = () => {
 
       <div className="px-4 py-4 space-y-6">
         {/* Calendar Section */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm">
           <div className="p-4">
             <FullCalendar
               ref={calendarRef}
@@ -253,7 +259,7 @@ export const AppointmentsPage = () => {
         {/* Timeline Sections */}
         {upcomingAppointments.length > 0 && (
           <TimelineSection
-            title="Upcoming Appointments"
+            title="Confirmed Appointments"
             items={formatEventsForTimeline(
               upcomingAppointments,
               upcomingAppointments[0].extendedProps.type
@@ -262,10 +268,32 @@ export const AppointmentsPage = () => {
           />
         )}
 
+        {upcomingAppointments.length > 0 && (
+          <TimelineSection
+            title="Cancelled Appointments"
+            items={formatEventsForTimeline(
+              upcomingAppointments,
+              upcomingAppointments[1].extendedProps.type
+            )}
+            className="bg-white rounded-xl shadow-sm p-4"
+          />
+        )}
+
+        {upcomingAppointments.length > 0 && (
+          <TimelineSection
+            title="Pending Appointments"
+            items={formatEventsForTimeline(
+              upcomingAppointments,
+              upcomingAppointments[2].extendedProps.type
+            )}
+            className="bg-white rounded-xl shadow-sm p-4"
+          />
+        )}
+
         {recentConsultations.length > 0 && (
           <TimelineSection
             title="Recent Consultations"
-            items={formatEventsForTimeline(recentConsultations, "consultation")}
+            items={formatEventsForTimeline(recentConsultations, "completed")}
             className="bg-white rounded-xl shadow-sm p-4"
           />
         )}
@@ -273,7 +301,7 @@ export const AppointmentsPage = () => {
         {recentVaccinations.length > 0 && (
           <TimelineSection
             title="Vaccination History"
-            items={formatEventsForTimeline(recentVaccinations, "vaccination")}
+            items={formatEventsForTimeline(recentVaccinations, "confirmed")}
             className="bg-white rounded-xl shadow-sm p-4"
           />
         )}
