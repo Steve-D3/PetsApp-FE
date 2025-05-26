@@ -109,7 +109,7 @@ export const AppointmentsPage = () => {
 
           return {
             id: appointment.id.toString(),
-            title: appointment.notes || `Appointment for ${pet?.name || "Pet"}`,
+            title: `Appointment for ${pet?.name || "Pet"}`,
             start: appointment.start_time,
             end: appointment.end_time,
             extendedProps: {

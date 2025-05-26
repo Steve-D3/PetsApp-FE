@@ -1,5 +1,5 @@
 // src/pages/PetsPage.tsx
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import type { Pet } from "@/features/pets/api/petsApi";
 import { useEffect, useState } from "react";
@@ -49,8 +49,8 @@ const PetsPage = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }

@@ -16,6 +16,7 @@ import ProfilePage from "./pages/ProfilePage";
 import PetsPage from "./pages/PetsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
 import { useAuth } from "./features/auth/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -33,8 +34,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
@@ -52,8 +53,8 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
