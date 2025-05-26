@@ -1,6 +1,5 @@
 // src/components/molecules/TimelineSection.tsx
 import { TimelineItem } from "../atoms/TimeLineItem";
-import { SectionHeader } from "../atoms/SectionHeader";
 import type { TimelineItem as TimelineItemType } from "@/lib/types/types.d";
 
 interface TimelineSectionProps {
@@ -14,10 +13,12 @@ export const TimelineSection = ({
   items,
   className,
 }: TimelineSectionProps) => {
+  if (items.length === 0) return null;
+  
   return (
     <div className={className}>
-      <SectionHeader title={title} />
-      <div className="space-y-1">
+      <h3 className="text-base font-semibold text-gray-900 mb-3">{title}</h3>
+      <div className="divide-y divide-gray-100">
         {items.map((item) => (
           <TimelineItem key={item.id} {...item} />
         ))}

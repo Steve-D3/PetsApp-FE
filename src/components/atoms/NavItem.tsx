@@ -14,6 +14,7 @@ export const NavItem = ({
       "p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors",
       "flex items-center justify-center",
       "relative group",
+      "active:ring-gray-600 active:ring-offset-2 active:ring focus:ring-gray-600 focus:ring-offset-2 focus:ring",
       className
     )}
     aria-label={label}

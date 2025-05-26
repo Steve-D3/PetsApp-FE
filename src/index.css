@@ -1,7 +1,18 @@
 @import "tailwindcss";
+
 :root {
   --foreground-rgb: 17, 24, 39; /* gray-900 */
   --background-rgb: 255, 255, 255; /* white */
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 body {

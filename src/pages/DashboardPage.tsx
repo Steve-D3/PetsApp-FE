@@ -172,7 +172,7 @@ const DashboardPage = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative w-full overflow-hidden rounded-lg mx-4 my-6 shadow-lg">
+      <div className="relative w-full overflow-hidden rounded-lg mx-auto mt-4 mb-6 shadow-lg">
         {/* Background Image with gradient overlay */}
         <div
           className="w-full h-64 bg-center bg-cover bg-no-repeat relative"
@@ -193,14 +193,14 @@ const DashboardPage = () => {
             </p>
             <div className="flex space-x-4">
               <button
-                onClick={() => navigate("/appointments/new")}
-                className="px-6 py-2.5 bg-white text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                onClick={() => navigate("/appointments")}
+                className="px-6 py-2.5 border-2 border-white text-white font-medium rounded-lg hover:bg-white hover:bg-opacity-10 hover:text-black transition-colors duration-200"
               >
                 Book Appointment
               </button>
               <button
                 onClick={() => navigate("/pets")}
-                className="px-6 py-2.5 border-2 border-white text-white font-medium rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors duration-200"
+                className="px-6 py-2.5 border-2 border-white text-white font-medium rounded-lg hover:bg-white hover:bg-opacity-10 hover:text-black transition-colors duration-200"
               >
                 View Pets
               </button>
@@ -284,33 +284,50 @@ const DashboardPage = () => {
       </div>
 
       {/* Pet Snapshot */}
-      <h2 className="text-[#101518] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">
-        Pet Snapshot
-      </h2>
+      <div className="px-4 pb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">
+          Pet Snapshot
+        </h2>
 
-      <div className="flex overflow-x-auto px-4 pb-4 -mx-4">
-        <div className="flex gap-4">
-          {pets.map((pet) => (
-            <div key={pet.id} className="flex-shrink-0 w-40">
-              <div className="flex flex-col gap-2">
-                <div
-                  className="w-full aspect-square bg-cover bg-center rounded-xl"
-                  style={{
-                    backgroundImage: `url(https://media.istockphoto.com/id/108271508/photo/young-gray-cat.jpg?s=612x612&w=0&k=20&c=Cnra41iZ85qkZGDJB3cDNQ41BTg0vgl11Mlgu-OpjwM=)`,
-                  }}
-                />
-                <div>
-                  <p className="text-[#101518] text-base font-medium leading-normal">
-                    {pet.name}
-                  </p>
-                  <p className="text-[#5c778a] text-sm font-normal leading-normal">
-                    {pet.weight} kg
-                  </p>
-                </div>
+        {pets.length === 0 ? (
+          <div className="text-center py-4 text-sm text-gray-500">
+            No pets added yet
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="flex overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
+              <div className="flex space-x-4">
+                {pets.map((pet) => (
+                  <div
+                    key={pet.id}
+                    onClick={() => navigate(`/pets`)}
+                    className="flex-shrink-0 w-48 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    <div className="relative h-32 bg-gray-100">
+                      <img
+                        src={
+                          "https://media.istockphoto.com/id/108271508/photo/young-gray-cat.jpg?s=612x612&w=0&k=20&c=Cnra41iZ85qkZGDJB3cDNQ41BTg0vgl11Mlgu-OpjwM="
+                        }
+                        alt={pet.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-3">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                        {pet.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 truncate">
+                        {pet.species || "Pet"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+            {/* Fade effect on the right side */}
+            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
+          </div>
+        )}
       </div>
     </div>
   );

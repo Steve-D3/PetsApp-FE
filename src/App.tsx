@@ -112,6 +112,14 @@ function App() {
               }
             />
             <Route
+              path="/profile/:petId"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/pets"
               element={
                 <ProtectedRoute>

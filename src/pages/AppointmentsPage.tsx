@@ -1,77 +1,282 @@
 // src/pages/AppointmentsPage.tsx
-import { Calendar, Video, Pill, Syringe } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  Calendar as CalendarIcon,
+  Video,
+  Syringe,
+  Plus,
+  Loader2,
+} from "lucide-react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import type { DateClickArg } from "@fullcalendar/interaction";
+import type { EventClickArg, EventContentArg } from "@fullcalendar/core";
+import { format } from "date-fns";
 import { TimelineSection } from "@/components/molecules/TimeLineSection";
-import { AppointmentCalendar } from "@/components/molecules/AppointmentCalendar";
+import { Button } from "@/components/atoms/Button";
+import petsApi from "@/features/pets/api/petsApi";
 
-// Mock data - replace with API calls in a real app
-const mockAppointments = [
-  {
-    id: "1",
-    date: "Dr. Sarah, 2 days ago",
-    title: "Vomiting",
-    subtitle: "Vomiting",
-    icon: <Calendar className="h-6 w-6" />,
-    actionIcon: <Video className="h-6 w-6" />,
-  },
-  {
-    id: "2",
-    date: "Dr. Sarah, 6 months ago",
-    title: "Annual checkup",
-    subtitle: "Annual checkup",
-    icon: <Calendar className="h-6 w-6" />,
-    actionIcon: <Video className="h-6 w-6" />,
-  },
-];
+// Helper function to map appointment status to event type and color
+const getAppointmentDetails = (status: string) => {
+  switch (status.toLowerCase()) {
+    case "completed":
+      return { type: "completed", color: "#10B981" };
+    case "scheduled":
+      return { type: "confirmed", color: "#3B82F6" };
+    case "cancelled":
+      return { type: "cancelled", color: "#EF4444" };
+    default:
+      return { type: "pending", color: "#6B7280" };
+  }
+};
 
-const mockTreatments = [
-  {
-    id: "1",
-    date: "Dr. Sarah, 3 weeks ago",
-    title: "Prescription: Antibiotics",
-    subtitle: "Prescription: Antibiotics",
-    icon: <Calendar className="h-6 w-6" />,
-    actionIcon: <Pill className="h-6 w-6" />,
-  },
-];
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date | string;
+  end?: Date | string;
+  extendedProps: {
+    type: "completed" | "confirmed" | "cancelled" | "pending";
+    doctor: string;
+    status: string;
+    petName: string;
+  };
+  backgroundColor?: string;
+  borderColor?: string;
+}
 
-const mockVaccinations = [
-  {
-    id: "1",
-    date: "Dr. Sarah, 1 year ago",
-    title: "Vaccination: Canine Influenza - H3N8 & H3N2",
-    subtitle: "Vaccination: Canine Influenza - H3N8 & H3N2",
-    icon: <Calendar className="h-6 w-6" />,
-    actionIcon: <Syringe className="h-6 w-6" />,
-  },
-];
-
-const mockUpcoming = [
-  {
-    id: "1",
-    date: "Dr. Sarah, 6 months later",
-    title: "Annual Checkup",
-    subtitle: "Annual Checkup",
-    icon: <Calendar className="h-6 w-6" />,
-    actionIcon: <Video className="h-6 w-6" />,
-  },
-];
+// Format events for the timeline sections
+const formatEventsForTimeline = (events: CalendarEvent[], type: string) => {
+  return events
+    .filter((event) => event.extendedProps.type === type)
+    .map((event) => ({
+      id: event.id,
+      date: format(new Date(event.start), "MMM d, yyyy"),
+      title: event.title,
+      subtitle: event.extendedProps.doctor,
+      icon:
+        type === "completed" ? (
+          <CalendarIcon className="h-5 w-5 text-blue-500" />
+        ) : type === "confirmed" ? (
+          <CalendarIcon className="h-5 w-5 text-green-500" />
+        ) : (
+          <Syringe className="h-5 w-5 text-purple-500" />
+        ),
+      actionIcon: <Video className="h-5 w-5 text-gray-500" />,
+    }));
+};
 
 export const AppointmentsPage = () => {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const calendarRef = useRef<FullCalendar | null>(null);
+
+  useEffect(() => {
+    const fetchUserPetsAndAppointments = async () => {
+      try {
+        setLoading(true);
+        
+        // First, get all the user's pets
+        const userPets = await petsApi.getUserPets();
+        
+        if (userPets.length === 0) {
+          setEvents([]);
+          return;
+        }
+        
+        // Get all appointments for each pet
+        const petAppointmentsPromises = userPets.map(pet => 
+          petsApi.getPetAppointments(pet.id)
+        );
+        
+        const appointmentsResults = await Promise.all(petAppointmentsPromises);
+        
+        // Flatten the array of arrays into a single array of appointments
+        const allAppointments = appointmentsResults.flat();
+        
+        const formattedEvents = allAppointments.map((appointment) => {
+          const { type, color } = getAppointmentDetails(appointment.status);
+          // Find the pet details for this appointment
+          const pet = userPets.find(p => p.id === appointment.pet_id);
+          
+          return {
+            id: appointment.id.toString(),
+            title: appointment.notes || `Appointment for ${pet?.name || 'Pet'}`,
+            start: appointment.start_time,
+            end: appointment.end_time,
+            extendedProps: {
+              type,
+              doctor: `Dr. Vet ${appointment.veterinarian_id || ""}`,
+              status: appointment.status,
+              petName: pet?.name || "Pet",
+            },
+            backgroundColor: color,
+            borderColor: color,
+          };
+        });
+
+        setEvents(formattedEvents);
+      } catch (error) {
+        console.error("Error fetching appointments:", error);
+        setError("Failed to load appointments. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserPetsAndAppointments();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg
+              className="h-5 w-5 text-red-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handleDateClick = (arg: DateClickArg) => {
+    // Handle date click (e.g., open modal to add new event)
+    console.log("Date clicked:", arg.date);
+  };
+
+  const handleEventClick = (clickInfo: EventClickArg) => {
+    // Handle event click (e.g., open event details)
+    console.log("Event clicked:", clickInfo.event.title);
+  };
+
+  const renderEventContent = (eventInfo: EventContentArg) => {
+    const { extendedProps } = eventInfo.event;
+    return (
+      <div className="p-1 text-xs">
+        <div className="font-medium truncate">{extendedProps.petName}</div>
+        <div className="text-gray-600 truncate">{eventInfo.event.title}</div>
+        <div className="text-gray-500 text-xxs">
+          {format(new Date(eventInfo.event.start as Date), "h:mm a")} •{" "}
+          {extendedProps.doctor}
+        </div>
+      </div>
+    );
+  };
+
+  // Filter events for timeline sections
+  const upcomingAppointments = events.filter(
+    (event) => new Date(event.start as Date) > new Date()
+  );
+  const recentConsultations = events.filter(
+    (event) =>
+      event.extendedProps.type === "consultation" &&
+      new Date(event.start as Date) <= new Date()
+  );
+  const recentVaccinations = events.filter(
+    (event) =>
+      event.extendedProps.type === "vaccination" &&
+      new Date(event.start as Date) <= new Date()
+  );
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center p-4 pb-2 justify-between">
-        <h2 className="text-foreground text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">
-          Pet's Timeline
-        </h2>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="px-4 pt-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              Appointments & Calendar
+            </h1>
+            <p className="text-gray-500 text-sm">
+              View and manage your pet's medical history and upcoming
+              appointments
+            </p>
+          </div>
+          <Button className="flex items-center">
+            <Plus className="h-4 w-4 mr-2" />
+            Add
+          </Button>
+        </div>
       </div>
 
-      <TimelineSection title="Consultations" items={mockAppointments} />
-      <TimelineSection title="Treatments" items={mockTreatments} />
-      <TimelineSection title="Vaccinations" items={mockVaccinations} />
-      <TimelineSection title="Upcoming Care Dates" items={mockUpcoming} />
+      <div className="px-4 py-4 space-y-6">
+        {/* Calendar Section */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4">
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "dayGridMonth,timeGridWeek,timeGridDay",
+              }}
+              events={events}
+              eventClick={handleEventClick}
+              dateClick={handleDateClick}
+              height={600}
+              nowIndicator={true}
+              selectable={true}
+              selectMirror={true}
+              dayMaxEvents={true}
+              eventClassNames={["cursor-pointer"]}
+              eventContent={renderEventContent}
+            />
+          </div>
+        </div>
 
-      <div className="px-4 py-4 flex justify-center">
-        <AppointmentCalendar />
+        {/* Timeline Sections */}
+        {upcomingAppointments.length > 0 && (
+          <TimelineSection
+            title="Upcoming Appointments"
+            items={formatEventsForTimeline(
+              upcomingAppointments,
+              upcomingAppointments[0].extendedProps.type
+            )}
+            className="bg-white rounded-xl shadow-sm p-4"
+          />
+        )}
+
+        {recentConsultations.length > 0 && (
+          <TimelineSection
+            title="Recent Consultations"
+            items={formatEventsForTimeline(recentConsultations, "consultation")}
+            className="bg-white rounded-xl shadow-sm p-4"
+          />
+        )}
+
+        {recentVaccinations.length > 0 && (
+          <TimelineSection
+            title="Vaccination History"
+            items={formatEventsForTimeline(recentVaccinations, "vaccination")}
+            className="bg-white rounded-xl shadow-sm p-4"
+          />
+        )}
       </div>
     </div>
   );

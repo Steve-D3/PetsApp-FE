@@ -3,36 +3,39 @@ import { forwardRef } from "react";
 import type { TimelineItemProps } from "@/lib/types/types.d";
 
 export const TimelineItem = forwardRef<HTMLDivElement, TimelineItemProps>(
-  ({ className, date, title, icon, actionIcon, ...props }, ref) => {
+  ({ className, date, title, subtitle, icon, actionIcon, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
-          "flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between",
+          "group flex items-center gap-4 px-0 py-3 justify-between border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors",
           className
         )}
         {...props}
       >
-        <div className="flex items-center gap-4">
-          <div className="text-foreground flex items-center justify-center rounded-lg bg-muted shrink-0 size-12">
+        <div className="flex items-start gap-3 w-full">
+          <div className="flex items-center justify-center rounded-lg bg-gray-50 p-2 shrink-0">
             {icon}
           </div>
-          <div className="flex flex-col justify-center">
-            <p className="text-foreground text-base font-medium leading-normal line-clamp-1">
-              {date}
-            </p>
-            <p className="text-muted-foreground text-sm font-normal leading-normal line-clamp-2">
+          <div className="flex-1 min-w-0">
+            <p className="text-gray-900 text-sm font-medium leading-tight truncate">
               {title}
             </p>
+            <p className="text-gray-500 text-xs leading-tight mt-0.5 truncate">
+              {subtitle}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              {date}
+            </p>
           </div>
-        </div>
-        {actionIcon && (
-          <div className="shrink-0">
-            <div className="text-foreground flex size-7 items-center justify-center">
-              {actionIcon}
+          {actionIcon && (
+            <div className="shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100">
+                {actionIcon}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }

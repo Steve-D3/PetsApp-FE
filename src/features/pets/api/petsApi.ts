@@ -165,10 +165,13 @@ const petsApi = {
     }
   },
 
-  async getPetAppointments(petId: number): Promise<Appointment[]> {
-    const response = await api.get<{ data: Appointment[] }>(
-      `/appointments?pet_id=${petId}`
-    );
+  getPetAppointments: async (petId: number): Promise<Appointment[]> => {
+    const response = await api.get(`/appointments?pet_id=${petId}`);
+    return response.data.data || [];
+  },
+
+  getAllAppointments: async (): Promise<Appointment[]> => {
+    const response = await api.get('/appointments');
     return response.data.data || [];
   },
 };
