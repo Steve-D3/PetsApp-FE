@@ -9,6 +9,7 @@ import petsApi, {
 
 const DashboardPage = () => {
   const { user } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pets, setPets] = useState<Pet[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -283,51 +284,66 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* Pet Snapshot */}
+      {/* Featured Content */}
       <div className="px-4 pb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 px-2">
-          Pet Snapshot
+        <h2 className="text-[#101518] text-[22px] font-bold leading-tight tracking-[-0.015em] mb-4">
+          Featured Content
         </h2>
-
-        {pets.length === 0 ? (
-          <div className="text-center py-4 text-sm text-gray-500">
-            No pets added yet
-          </div>
-        ) : (
-          <div className="relative">
-            <div className="flex overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
-              <div className="flex space-x-4">
-                {pets.map((pet) => (
-                  <div
-                    key={pet.id}
-                    onClick={() => navigate(`/pets`)}
-                    className="flex-shrink-0 w-48 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden hover:-translate-y-0.5 active:translate-y-0"
-                  >
-                    <div className="relative h-32 bg-gray-100">
-                      <img
-                        src={
-                          "https://media.istockphoto.com/id/108271508/photo/young-gray-cat.jpg?s=612x612&w=0&k=20&c=Cnra41iZ85qkZGDJB3cDNQ41BTg0vgl11Mlgu-OpjwM="
-                        }
-                        alt={pet.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-3">
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
-                        {pet.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 truncate">
-                        {pet.species || "Pet"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+        <div className="overflow-y-auto [-ms-scrollbar-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex items-stretch gap-4">
+            <div className="flex h-full flex-1 flex-col gap-4 rounded-lg min-w-[160px]">
+              <div
+                className="w-full bg-center bg-no-repeat aspect-square bg-cover rounded-xl flex flex-col"
+                style={{
+                  backgroundImage:
+                    'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAst-nLkjO461ZYPR04SG5v3E56qmWTyNDve8NNxoFVVw-6aveFK1GB-erKIBE3qI8_M7KX1LEkkbs8d3Hu_OP7SkIQD0UH-4Ikn1be-YQFx63fK5Ye4lLkbUDoV1yGSmyZ78MAnCXXxZXpPHBmqvT56VtaO3XvpipqW6wBruXfHYGSawK4gFQFMIaPX0PAa-mieWGMk4JrykiNa6p9P5Fkv8aV10v0v7WJ5AE4MzE2Y7Hi5rwBAYIHHb5KFwikGrCVti3HdTOTl3c")',
+                }}
+              />
+              <div>
+                <p className="text-[#101518] text-base font-medium leading-normal">
+                  Premium Dog Food
+                </p>
+                <p className="text-[#5c778a] text-sm font-normal leading-normal">
+                  Special offer on premium dog food
+                </p>
               </div>
             </div>
-            {/* Fade effect on the right side */}
-            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
+            <div className="flex h-full flex-1 flex-col gap-4 rounded-lg min-w-[160px]">
+              <div
+                className="w-full bg-center bg-no-repeat aspect-square bg-cover rounded-xl flex flex-col"
+                style={{
+                  backgroundImage:
+                    'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBsXKEtqXe1lj1E9C48-adXqW76S2k-A-bp7vywzhisq_8rr61Iw98x-d3xXRaILuo14KFV08UKCWAoEEnz17fhultNJysvXL095URuj1YFuztldgkB5tJx3FoTrBZIS1kq3-dXITr7rom5tECZ7ILz2i7IvehQx88nSHsuMvSn5OHLfdLc8j1b5vIeP9WPyzCRMseAM_VFNO2FfkdmKWSk5uBEnsuTUo1VZ8QG8W8tK0qIxKehi1X9aqNtsESzgW5YsTlAOvaVujE")',
+                }}
+              />
+              <div>
+                <p className="text-[#101518] text-base font-medium leading-normal">
+                  Professional Grooming
+                </p>
+                <p className="text-[#5c778a] text-sm font-normal leading-normal">
+                  Book a grooming session today
+                </p>
+              </div>
+            </div>
+            <div className="flex h-full flex-1 flex-col gap-4 rounded-lg min-w-[160px]">
+              <div
+                className="w-full bg-center bg-no-repeat aspect-square bg-cover rounded-xl flex flex-col"
+                style={{
+                  backgroundImage:
+                    'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB23dMXX8cFNLCgW6BgOr6HXO4dMyUDisvXYE9MBYXbswpYLgQzyZRHpZDyTh7fdAyBSAoncoH6DfPYR2z_tLkPukhFVpKEoZ2i6vysL3B_XeMhUueunQMAxC7Gbofy0zQOVq-ZKUbS3uH3_WLyrIdQPTz9OYQ8eGBxOGwOjnn6s2V2wr8qN5MtWrK2Y3brFMIjT8mknynXrYr7EDqSJC17QDzfAxm7JlCy1U4PH_OzkpEmd1nqUWDcJ5uKeeokgYx5-q8CE1a6Yrs")',
+                }}
+              />
+              <div>
+                <p className="text-[#101518] text-base font-medium leading-normal">
+                  Local Dog Park Event
+                </p>
+                <p className="text-[#5c778a] text-sm font-normal leading-normal">
+                  Join us for a fun day at the park
+                </p>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-// src/pages/AppointmentsPage.tsx
 import { useState, useRef, useEffect } from "react";
 import {
   Calendar as CalendarIcon,
