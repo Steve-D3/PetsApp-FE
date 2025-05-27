@@ -174,6 +174,15 @@ const petsApi = {
     const response = await api.get('/appointments');
     return response.data.data || [];
   },
+  createAppointment: async (appointmentData: Omit<Appointment, 'id' | 'pet' | 'veterinarian'>): Promise<Appointment> => {
+    try {
+      const response = await api.post<{ data: Appointment }>('/appointments', appointmentData);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      throw error;
+    }
+  },
 };
 
 export default petsApi;

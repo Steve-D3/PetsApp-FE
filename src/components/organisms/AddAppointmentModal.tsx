@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { useToast } from "@/components/atoms/use-toast";
@@ -21,46 +21,58 @@ export const AddAppointmentModal = ({
   onAppointmentAdded,
 }: AddAppointmentModalProps) => {
   const { toast } = useToast();
+  const toastRef = useRef(toast);
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    pet_id: "",
-    veterinarian_id: "1", // Default to first vet for now
-    start_time: new Date().toISOString().slice(0, 16), // Current date and time
-    status: "pending",
-    notes: "",
+  
+  // Update the ref when toast changes
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+  const [formData, setFormData] = useState(() => {
+    const startTime = new Date();
+    const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutes after start time
+
+    return {
+      pet_id: "",
+      veterinarian_id: "1", // Default to first vet for now
+      start_time: startTime.toISOString().slice(0, 16),
+      end_time: endTime.toISOString().slice(0, 16),
+      status: "pending",
+      notes: "",
+    };
   });
 
-  useEffect(() => {
-    const fetchPets = async () => {
-      try {
-        setIsLoading(true);
-        const userPets = await petsApi.getUserPets();
-        setPets(userPets);
+  const fetchPets = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const userPets = await petsApi.getUserPets();
+      setPets(userPets);
 
-        // Set the first pet as default if available
-        if (userPets.length > 0) {
-          setFormData((prev) => ({
-            ...prev,
-            pet_id: userPets[0].id.toString(),
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching pets:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load pets. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+      // Set the first pet as default if available
+      if (userPets.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          pet_id: userPets[0].id.toString(),
+        }));
       }
-    };
+    } catch (error) {
+      console.error("Error fetching pets:", error);
+      toastRef.current({
+        title: "Error",
+        description: "Failed to load pets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []); // Removed toast from dependencies
 
+  useEffect(() => {
     if (isOpen) {
       fetchPets();
     }
-  }, [isOpen, toast]);
+  }, [isOpen, fetchPets]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +93,10 @@ export const AddAppointmentModal = ({
         ...formData,
         pet_id: parseInt(formData.pet_id, 10),
         veterinarian_id: parseInt(formData.veterinarian_id, 10),
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        status: formData.status,
+        notes: formData.notes,
       });
 
       toast({
@@ -109,10 +125,24 @@ export const AddAppointmentModal = ({
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    setFormData((prev) => {
+      // If start_time is being updated, update end_time to be 30 minutes after
+      if (name === "start_time" && value) {
+        const startTime = new Date(value);
+        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+        return {
+          ...prev,
+          start_time: value,
+          end_time: endTime.toISOString().slice(0, 16),
+        };
+      }
+
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
   };
 
   if (!isOpen) return null;
@@ -154,22 +184,24 @@ export const AddAppointmentModal = ({
             </select>
           </div>
 
-          <div>
-            <label
-              htmlFor="start_time"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              id="start_time"
-              name="start_time"
-              value={formData.start_time}
-              onChange={handleChange}
-              className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="start_time"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Start Time
+              </label>
+              <input
+                type="datetime-local"
+                id="start_time"
+                name="start_time"
+                value={formData.start_time}
+                onChange={handleChange}
+                className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+            </div>
           </div>
 
           <div>
