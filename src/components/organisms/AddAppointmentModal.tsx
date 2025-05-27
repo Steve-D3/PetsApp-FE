@@ -4,6 +4,17 @@ import { Button } from "@/components/atoms/Button";
 import { useToast } from "@/components/atoms/use-toast";
 import petsApi from "@/features/pets/api/petsApi";
 
+// Type for the vet data from the API
+type Vet = {
+  id: number;
+  user_id: number;
+  license_number: string;
+  specialty: string;
+  biography: string;
+  phone_number: string;
+  off_days: string[];
+};
+
 interface AddAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +34,7 @@ export const AddAppointmentModal = ({
   const { toast } = useToast();
   const toastRef = useRef(toast);
   const [pets, setPets] = useState<Pet[]>([]);
+  const [vets, setVets] = useState<Vet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   // Update the ref when toast changes
@@ -43,36 +55,43 @@ export const AddAppointmentModal = ({
     };
   });
 
-  const fetchPets = useCallback(async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Fetch pets
       const userPets = await petsApi.getUserPets();
       setPets(userPets);
 
-      // Set the first pet as default if available
+      // Fetch vets
+      const vetsData = await petsApi.getVets();
+      setVets(vetsData);
+
+      // Set the first pet and vet as default if available
       if (userPets.length > 0) {
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           pet_id: userPets[0].id.toString(),
+          veterinarian_id: vetsData[0]?.id.toString() || "1",
         }));
       }
     } catch (error) {
-      console.error("Error fetching pets:", error);
+      console.error("Error fetching data:", error);
       toastRef.current({
         title: "Error",
-        description: "Failed to load pets. Please try again.",
+        description: "Failed to load data. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }, []); // Removed toast from dependencies
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
-      fetchPets();
+      fetchInitialData();
     }
-  }, [isOpen, fetchPets]);
+  }, [isOpen, fetchInitialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,6 +220,29 @@ export const AddAppointmentModal = ({
                 className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
                 required
               />
+            </div>
+            <div>
+              <label
+                htmlFor="veterinarian_id"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Veterinarian
+              </label>
+              <select
+                id="veterinarian_id"
+                name="veterinarian_id"
+                value={formData.veterinarian_id}
+                onChange={handleChange}
+                className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                disabled={isLoading || vets.length === 0}
+                required
+              >
+                {vets.map((vet) => (
+                  <option key={vet.id} value={vet.id}>
+                    Vet #{vet.id} ({vet.specialty})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

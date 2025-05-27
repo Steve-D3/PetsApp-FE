@@ -176,12 +176,21 @@ const petsApi = {
   },
   createAppointment: async (appointmentData: Omit<Appointment, 'id' | 'pet' | 'veterinarian'>): Promise<Appointment> => {
     try {
-      const response = await api.post<{ data: Appointment }>('/appointments', appointmentData);
-      return response.data.data;
+      const response = await api.post<Appointment>('/appointments', appointmentData);
+      return response.data;
     } catch (error) {
       console.error('Error creating appointment:', error);
       throw error;
     }
+  },
+  
+  /**
+   * Fetches all available veterinarians
+   * @returns Promise with array of veterinarians
+   */
+  getVets: async (): Promise<Array<Veterinarian & { user: { name: string; email: string } }>> => {
+    const response = await api.get<Array<Veterinarian & { user: { name: string; email: string } }>>('/vets');
+    return response.data;
   },
 };
 

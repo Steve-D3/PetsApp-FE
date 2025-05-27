@@ -94,7 +94,7 @@ const DashboardPage = () => {
             // Don't fail the whole page if appointments fail
           }
         }
-
+        console.log(localStorage.getItem("token"));
         setError(null);
       } catch (error) {
         if (error instanceof Error) {
