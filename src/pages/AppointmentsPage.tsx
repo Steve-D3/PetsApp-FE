@@ -16,7 +16,9 @@ import type { EventClickArg, EventContentArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 import { TimelineSection } from "@/components/molecules/TimeLineSection";
 import { Button } from "@/components/atoms/Button";
+import { AddAppointmentModal } from "@/components/organisms/AddAppointmentModal";
 import petsApi from "@/features/pets/api/petsApi";
+import { useToast } from "@/components/atoms/use-toast";
 
 // Helper function to map appointment status to event type and color
 const getAppointmentDetails = (
@@ -77,7 +79,9 @@ export const AppointmentsPage = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const calendarRef = useRef<FullCalendar | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUserPetsAndAppointments = async () => {
@@ -134,6 +138,63 @@ export const AppointmentsPage = () => {
 
     fetchUserPetsAndAppointments();
   }, []);
+
+  const handleAppointmentAdded = async () => {
+    try {
+      setLoading(true);
+      // Refresh the appointments list
+      const userPets = await petsApi.getUserPets();
+      if (userPets.length === 0) {
+        setEvents([]);
+        return;
+      }
+
+      // Get all appointments for each pet
+      const petAppointmentsPromises = userPets.map((pet) =>
+        petsApi.getPetAppointments(pet.id)
+      );
+
+      const appointmentsResults = await Promise.all(petAppointmentsPromises);
+      const allAppointments = appointmentsResults.flat();
+
+      const formattedEvents = allAppointments.map((appointment) => {
+        const { type, color } = getAppointmentDetails(appointment.status);
+        const pet = userPets.find((p) => p.id === appointment.pet_id);
+
+        return {
+          id: appointment.id.toString(),
+          title: `Appointment for ${pet?.name || "Pet"}`,
+          start: appointment.start_time,
+          end: appointment.end_time,
+          extendedProps: {
+            type,
+            doctor: `Dr. Vet ${appointment.veterinarian_id || ""}`,
+            status: appointment.status,
+            petName: pet?.name || "Pet",
+          },
+          backgroundColor: color,
+          borderColor: color,
+        };
+      });
+
+      setEvents(formattedEvents);
+
+      toast({
+        title: "Success",
+        description: "Appointment created successfully!",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Error refreshing appointments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh appointments. Please try again.",
+        variant: "error"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -208,54 +269,50 @@ export const AppointmentsPage = () => {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 p-4">
       {/* Header */}
-      <div className="px-4 pt-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">
-              Appointments & Calendar
-            </h1>
-            <p className="text-gray-500 text-sm">
-              View and manage your pet's medical history and upcoming
-              appointments
-            </p>
-          </div>
-          <Button className="flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
-            Add
-          </Button>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
+          <p className="text-gray-500">Manage and schedule appointments</p>
         </div>
+        <Button onClick={() => setIsAddModalOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Appointment
+        </Button>
       </div>
 
-      <div className="px-4 py-4 space-y-6">
-        {/* Calendar Section */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-4">
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="dayGridMonth"
-              headerToolbar={{
-                left: "prev,next today",
-                center: "title",
-                right: "dayGridMonth,timeGridWeek,timeGridDay",
-              }}
-              events={events}
-              eventClick={handleEventClick}
-              dateClick={handleDateClick}
-              height={600}
-              nowIndicator={true}
-              selectable={true}
-              selectMirror={true}
-              dayMaxEvents={true}
-              eventClassNames={["cursor-pointer"]}
-              eventContent={renderEventContent}
-            />
-          </div>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay",
+          }}
+          events={events}
+          eventClick={handleEventClick}
+          dateClick={handleDateClick}
+          height={600}
+          nowIndicator={true}
+          selectable={true}
+          selectMirror={true}
+          dayMaxEvents={true}
+          eventClassNames={["cursor-pointer"]}
+          eventContent={renderEventContent}
+        />
+      </div>
 
-        {/* Timeline Sections */}
+      <AddAppointmentModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAppointmentAdded={handleAppointmentAdded}
+      />
+
+      {/* Timeline Sections */}
+      <div className="space-y-4">
         {upcomingAppointments.length > 0 && (
           <TimelineSection
             title="Confirmed Appointments"
