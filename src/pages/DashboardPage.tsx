@@ -15,6 +15,7 @@ import {
 
 const DashboardPage = () => {
   const { user } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pets, setPets] = useState<Pet[]>([]);
   const [appointments, setAppointments] = useState<
     (Appointment & { petName: string })[]

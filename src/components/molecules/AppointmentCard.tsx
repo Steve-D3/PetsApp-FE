@@ -1,4 +1,4 @@
-import { Appointment } from "@/features/pets/api/petsApi";
+import type { Appointment } from "@/features/pets/api/petsApi";
 
 interface AppointmentCardProps {
   appointment: Appointment & { petName: string };
@@ -73,9 +73,14 @@ export const AppointmentCard = ({
           </span>
         </div>
         <div className="mt-1 text-sm text-gray-600">
-          <p>With Dr. {appointment.veterinarian?.clinic?.name || "Veterinarian"}</p>
+          <p>
+            With Dr. {appointment.veterinarian?.clinic?.name || "Veterinarian"}
+          </p>
           <p className="text-gray-500 text-sm mt-1">
-            {formatAppointmentTime(appointment.start_time, appointment.end_time)}
+            {formatAppointmentTime(
+              appointment.start_time,
+              appointment.end_time
+            )}
           </p>
           {appointment.notes && (
             <p className="mt-2 text-sm text-gray-600 line-clamp-2">
@@ -93,7 +98,8 @@ export const AppointmentCard = ({
                 : "bg-gray-100 text-gray-800"
             }`}
           >
-            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+            {appointment.status.charAt(0).toUpperCase() +
+              appointment.status.slice(1)}
           </span>
         </div>
       </div>

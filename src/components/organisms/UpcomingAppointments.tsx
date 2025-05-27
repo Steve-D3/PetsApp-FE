@@ -1,4 +1,4 @@
-import { Appointment } from "@/features/pets/api/petsApi";
+import type { Appointment } from "@/features/pets/api/petsApi";
 import { AppointmentCard } from "../molecules/AppointmentCard";
 
 interface UpcomingAppointmentsProps {
