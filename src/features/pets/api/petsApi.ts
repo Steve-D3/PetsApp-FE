@@ -30,6 +30,7 @@ export interface Clinic {
   phone: string;
   email: string;
   website: string;
+  veterinarians: Veterinarian[];
 }
 
 export interface Veterinarian {
@@ -40,6 +41,7 @@ export interface Veterinarian {
   biography: string;
   phone_number: string;
   off_days: string[];
+  user: PetOwner;
   clinic: Clinic;
 }
 
@@ -171,26 +173,54 @@ const petsApi = {
   },
 
   getAllAppointments: async (): Promise<Appointment[]> => {
-    const response = await api.get('/appointments');
+    const response = await api.get("/appointments");
     return response.data.data || [];
   },
-  createAppointment: async (appointmentData: Omit<Appointment, 'id' | 'pet' | 'veterinarian'>): Promise<Appointment> => {
+  createAppointment: async (
+    appointmentData: Omit<Appointment, "id" | "pet" | "veterinarian">
+  ): Promise<Appointment> => {
     try {
-      const response = await api.post<Appointment>('/appointments', appointmentData);
+      const response = await api.post<Appointment>(
+        "/appointments",
+        appointmentData
+      );
       return response.data;
     } catch (error) {
-      console.error('Error creating appointment:', error);
+      console.error("Error creating appointment:", error);
       throw error;
     }
   },
-  
+
   /**
    * Fetches all available veterinarians
    * @returns Promise with array of veterinarians
    */
-  getVets: async (): Promise<Array<Veterinarian & { user: { name: string; email: string } }>> => {
-    const response = await api.get<Array<Veterinarian & { user: { name: string; email: string } }>>('/vets');
+  getVets: async (): Promise<Veterinarian[]> => {
+    const response = await api.get("/vets");
     return response.data;
+  },
+
+  getClinics: async (): Promise<Clinic[]> => {
+    const response = await api.get("/clinics");
+    return response.data;
+  },
+
+  /**
+   * Fetches available time slots for a vet on a specific date
+   * @param vetId The ID of the veterinarian
+   * @param date The date in YYYY-MM-DD format
+   * @returns Promise with array of available time slots
+   */
+  getAvailableSlots: async (vetId: number, date: string): Promise<string[]> => {
+    try {
+      const response = await api.get(`/appointments/available-slots/${vetId}`, {
+        params: { date }
+      });
+      return response.data.slots || [];
+    } catch (error) {
+      console.error(`Error fetching available slots for vet ${vetId} on ${date}:`, error);
+      return [];
+    }
   },
 };
 

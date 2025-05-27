@@ -3,17 +3,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import { useToast } from "@/components/atoms/use-toast";
 import petsApi from "@/features/pets/api/petsApi";
-
-// Type for the vet data from the API
-type Vet = {
-  id: number;
-  user_id: number;
-  license_number: string;
-  specialty: string;
-  biography: string;
-  phone_number: string;
-  off_days: string[];
-};
+import type { Veterinarian, Clinic } from "@/features/pets/api/petsApi";
 
 interface AddAppointmentModalProps {
   isOpen: boolean;
@@ -34,13 +24,20 @@ export const AddAppointmentModal = ({
   const { toast } = useToast();
   const toastRef = useRef(toast);
   const [pets, setPets] = useState<Pet[]>([]);
-  const [vets, setVets] = useState<Vet[]>([]);
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [selectedClinicId, setSelectedClinicId] = useState<string>("");
+  const [vets, setVets] = useState<Veterinarian[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Update the ref when toast changes
+  const [isLoadingVets, setIsLoadingVets] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
+
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
+
   const [formData, setFormData] = useState(() => {
     const startTime = new Date();
     const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutes after start time
@@ -55,24 +52,160 @@ export const AddAppointmentModal = ({
     };
   });
 
+  // Fetch clinics
+  const fetchClinics = useCallback(async () => {
+    try {
+      const clinicsData = await petsApi.getClinics();
+      setClinics(clinicsData);
+
+      // Select first clinic by default if available
+      if (clinicsData.length > 0) {
+        setSelectedClinicId(clinicsData[0].id.toString());
+      }
+
+      return clinicsData;
+    } catch (error) {
+      console.error("Error fetching clinics:", error);
+      toastRef.current({
+        title: "Error",
+        description: "Failed to load clinics. Please try again.",
+        variant: "destructive",
+      });
+      return [];
+    }
+  }, []);
+
+  // Fetch vets based on selected clinic
+  const fetchVetsByClinic = useCallback(async (clinicId: string) => {
+    if (!clinicId) return;
+
+    try {
+      setIsLoadingVets(true);
+      // Assuming getVets can accept a clinicId parameter
+      const vetsData = await petsApi.getVets();
+      // Filter vets by clinic if needed, or modify the API to filter on the server
+      const filteredVets = vetsData.filter(
+        (vet) => vet.clinic.id.toString() === clinicId
+      );
+      setVets(filteredVets);
+
+      // Update the form with the first vet if available
+      if (filteredVets.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          veterinarian_id: filteredVets[0].id.toString(),
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching vets:", error);
+      toastRef.current({
+        title: "Error",
+        description: "Failed to load veterinarians. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingVets(false);
+    }
+  }, []);
+
+  // Handle clinic selection change
+  const handleClinicChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const clinicId = e.target.value;
+    setSelectedClinicId(clinicId);
+    setSelectedTimeSlot("");
+    setAvailableSlots([]);
+    fetchVetsByClinic(clinicId);
+  };
+
+  // Handle vet selection change
+  const handleVetSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const vetId = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      veterinarian_id: vetId,
+    }));
+    // Reset time slot and date when vet changes
+    setSelectedTimeSlot("");
+    setAvailableSlots([]);
+    setSelectedDate("");
+  };
+
+  // Handle date selection change
+  const handleDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const date = e.target.value;
+    setSelectedDate(date);
+    setSelectedTimeSlot("");
+
+    if (!formData.veterinarian_id) {
+      toastRef.current({
+        title: "Warning",
+        description: "Please select a veterinarian first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoadingSlots(true);
+      const slots = await petsApi.getAvailableSlots(
+        parseInt(formData.veterinarian_id, 10),
+        date
+      );
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error("Error fetching time slots:", error);
+      toastRef.current({
+        title: "Error",
+        description: "Failed to load available time slots. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  // Handle time slot selection
+  const handleTimeSlotChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const timeSlot = e.target.value;
+    setSelectedTimeSlot(timeSlot);
+
+    // Update form data with the combined date and time
+    if (selectedDate && timeSlot) {
+      const timeParts = timeSlot.split(" ")[1].split(":");
+      const hours = timeParts[0];
+      const minutes = timeParts[1];
+
+      const startTime = new Date(selectedDate);
+      startTime.setHours(parseInt(hours, 10));
+      startTime.setMinutes(parseInt(minutes, 10));
+
+      const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutes slot
+
+      setFormData((prev) => ({
+        ...prev,
+        start_time: startTime.toISOString().slice(0, 16),
+        end_time: endTime.toISOString().slice(0, 16),
+      }));
+    }
+  };
+
   const fetchInitialData = useCallback(async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch pets
-      const userPets = await petsApi.getUserPets();
+
+      // Fetch pets and clinics in parallel
+      const [userPets] = await Promise.all([
+        petsApi.getUserPets(),
+        fetchClinics(),
+      ]);
+
       setPets(userPets);
 
-      // Fetch vets
-      const vetsData = await petsApi.getVets();
-      setVets(vetsData);
-
-      // Set the first pet and vet as default if available
+      // Set the first pet as default if available
       if (userPets.length > 0) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           pet_id: userPets[0].id.toString(),
-          veterinarian_id: vetsData[0]?.id.toString() || "1",
         }));
       }
     } catch (error) {
@@ -167,16 +300,46 @@ export const AddAppointmentModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-        >
-          <X className="h-5 w-5" />
-        </button>
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Schedule New Appointment</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
 
-        <h2 className="mb-6 text-xl font-semibold">Add New Appointment</h2>
+        {/* Clinic Selection */}
+        <div className="mb-4">
+          <label
+            htmlFor="clinic"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Select Clinic *
+          </label>
+          <select
+            id="clinic"
+            value={selectedClinicId}
+            onChange={handleClinicChange}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={isLoading || clinics.length === 0}
+          >
+            {isLoading ? (
+              <option>Loading clinics...</option>
+            ) : clinics.length === 0 ? (
+              <option>No clinics available</option>
+            ) : (
+              clinics.map((clinic) => (
+                <option key={clinic.id} value={clinic.id}>
+                  {clinic.name}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -203,70 +366,106 @@ export const AddAppointmentModal = ({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="mb-4">
+            <label
+              htmlFor="veterinarian"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Veterinarian *
+            </label>
+            <select
+              id="veterinarian"
+              name="veterinarian_id"
+              value={formData.veterinarian_id}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoadingVets || !selectedClinicId || vets.length === 0}
+              required
+            >
+              {isLoadingVets ? (
+                <option>Loading veterinarians...</option>
+              ) : !selectedClinicId ? (
+                <option>Please select a clinic first</option>
+              ) : vets.length === 0 ? (
+                <option>No veterinarians available at this clinic</option>
+              ) : (
+                vets.map((vet) => (
+                  <option key={vet.id} value={vet.id}>
+                    {vet.user?.name || `Vet #${vet.id}`}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {/* Date Picker */}
             <div>
               <label
-                htmlFor="start_time"
+                htmlFor="appointment-date"
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Start Time
+                Appointment Date *
               </label>
               <input
-                type="datetime-local"
-                id="start_time"
-                name="start_time"
-                value={formData.start_time}
-                onChange={handleChange}
+                type="date"
+                id="appointment-date"
+                name="appointment-date"
+                value={selectedDate}
+                onChange={handleDateChange}
+                min={new Date().toISOString().split("T")[0]}
                 className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                disabled={!formData.veterinarian_id || isLoadingSlots}
                 required
               />
             </div>
+
+            {/* Time Slot Selection */}
             <div>
               <label
-                htmlFor="veterinarian_id"
+                htmlFor="time-slot"
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Veterinarian
+                Available Time Slots *
               </label>
               <select
-                id="veterinarian_id"
-                name="veterinarian_id"
-                value={formData.veterinarian_id}
-                onChange={handleChange}
+                id="time-slot"
+                name="time-slot"
+                value={selectedTimeSlot}
+                onChange={handleTimeSlotChange}
                 className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-                disabled={isLoading || vets.length === 0}
+                disabled={
+                  !selectedDate || availableSlots.length === 0 || isLoadingSlots
+                }
                 required
               >
-                {vets.map((vet) => (
-                  <option key={vet.id} value={vet.id}>
-                    Vet #{vet.id} ({vet.specialty})
-                  </option>
-                ))}
+                <option value="">
+                  {isLoadingSlots
+                    ? "Loading time slots..."
+                    : availableSlots.length === 0
+                    ? "No available slots. Please select another date."
+                    : "Select a time slot"}
+                </option>
+                {availableSlots.map((slot) => {
+                  const date = new Date(slot);
+                  const timeString = date.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                  return (
+                    <option key={slot} value={slot}>
+                      {timeString}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="status"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Status
-            </label>
-            <select
-              id="status"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-              required
-            >
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
+          {/* Hidden inputs for form submission */}
+          <input type="hidden" name="start_time" value={formData.start_time} />
+          <input type="hidden" name="end_time" value={formData.end_time} />
+          <input type="hidden" name="status" value="pending" />
 
           <div>
             <label
