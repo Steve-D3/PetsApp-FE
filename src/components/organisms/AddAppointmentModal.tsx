@@ -118,6 +118,7 @@ export const AddAppointmentModal = ({
   };
 
   // Handle vet selection change
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleVetSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const vetId = e.target.value;
     setFormData((prev) => ({
@@ -229,27 +230,128 @@ export const AddAppointmentModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.pet_id) {
+    if (
+      !formData.pet_id ||
+      !formData.veterinarian_id ||
+      !formData.start_time ||
+      !formData.end_time
+    ) {
       toast({
         title: "Error",
-        description: "Please select a pet",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
 
+    // Debug: Log the selected veterinarian ID
+    console.log("Selected veterinarian ID:", formData.veterinarian_id);
+
+    // Validate veterinarian ID is a positive number
+    const vetId = parseInt(formData.veterinarian_id, 10);
+    if (isNaN(vetId) || vetId <= 0) {
+      toast({
+        title: "Error",
+        description: "Please select a valid veterinarian",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Find the selected veterinarian to get their user_id
+    const selectedVet = vets.find((vet) => vet.id === vetId);
+    if (!selectedVet || !selectedVet.user_id) {
+      toast({
+        title: "Error",
+        description:
+          "Selected veterinarian is not valid or missing user information",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Debug: Log the parsed veterinarian ID and user_id
+    console.log("Parsed veterinarian ID:", vetId);
+    console.log("Veterinarian user_id:", selectedVet.user_id);
+
     try {
       setIsLoading(true);
 
-      await petsApi.createAppointment({
-        ...formData,
+      // Parse the dates
+      const startTime = new Date(formData.start_time);
+      const endTime = new Date(formData.end_time);
+
+      // Get local hours and minutes for validation
+      const localStartHour = startTime.getHours();
+      const localStartMinute = startTime.getMinutes();
+
+      // Convert to UTC for API
+      const utcStartTime = new Date(
+        Date.UTC(
+          startTime.getFullYear(),
+          startTime.getMonth(),
+          startTime.getDate(),
+          startTime.getHours(),
+          startTime.getMinutes(),
+          startTime.getSeconds()
+        )
+      );
+
+      const utcEndTime = new Date(
+        Date.UTC(
+          endTime.getFullYear(),
+          endTime.getMonth(),
+          endTime.getDate(),
+          endTime.getHours(),
+          endTime.getMinutes(),
+          endTime.getSeconds()
+        )
+      );
+
+      // Validate appointment time is within business hours (09:00-12:00 or 13:00-16:00)
+      const isMorningSlot =
+        (localStartHour === 9 && localStartMinute >= 0) ||
+        localStartHour === 10 ||
+        localStartHour === 11 ||
+        (localStartHour === 12 && localStartMinute === 0);
+
+      const isAfternoonSlot =
+        (localStartHour === 13 && localStartMinute >= 0) ||
+        localStartHour === 14 ||
+        localStartHour === 15 ||
+        (localStartHour === 16 && localStartMinute === 0);
+
+      const isValidTime = isMorningSlot || isAfternoonSlot;
+
+      if (!isValidTime) {
+        toast({
+          title: "Invalid Appointment Time",
+          description: `Selected time: ${localStartHour
+            .toString()
+            .padStart(2, "0")}:${localStartMinute
+            .toString()
+            .padStart(
+              2,
+              "0"
+            )}. Appointments must be scheduled between 09:00–12:00 or 13:00–16:00.`,
+          variant: "destructive",
+          duration: 10000, // Show for 10 seconds
+        });
+        return;
+      }
+
+      // Format the data as expected by the API with UTC times
+      const appointmentData = {
         pet_id: parseInt(formData.pet_id, 10),
-        veterinarian_id: parseInt(formData.veterinarian_id, 10),
-        start_time: formData.start_time,
-        end_time: formData.end_time,
-        status: formData.status,
-        notes: formData.notes,
-      });
+        veterinarian_id: selectedVet.user_id, // Use the user_id as veterinarian_id for the API
+        start_time: utcStartTime.toISOString(),
+        end_time: utcEndTime.toISOString(),
+        status: "pending",
+        notes: formData.notes || "",
+      };
+
+      const response = await petsApi.createAppointment(appointmentData);
+      console.log("Appointment created:", response);
 
       toast({
         title: "Success",
@@ -260,10 +362,66 @@ export const AddAppointmentModal = ({
       onAppointmentAdded();
       onClose();
     } catch (error) {
+      // Type assertion for Axios error
+      const axiosError = error as {
+        response?: {
+          data: {
+            message?: string;
+            errors?: Record<string, string | string[]>;
+          };
+          status: number;
+          headers: Record<string, string>;
+        };
+        message?: string;
+      };
+
       console.error("Error creating appointment:", error);
+
+      // Log the full error response
+      if (axiosError.response) {
+        console.error("Error response data:", axiosError.response.data);
+        console.error("Error response status:", axiosError.response.status);
+        console.error("Error response headers:", axiosError.response.headers);
+
+        let errorMessage = "";
+
+        // Show validation errors if they exist
+        if (axiosError.response.data.errors) {
+          errorMessage = Object.entries(axiosError.response.data.errors)
+            .flatMap(([field, messages]) => {
+              const messageList = Array.isArray(messages)
+                ? messages
+                : [messages];
+              return messageList.map((msg) => `• ${field}: ${msg}`);
+            })
+            .join("\n");
+        }
+
+        // Add main error message if available
+        if (axiosError.response.data.message) {
+          errorMessage =
+            axiosError.response.data.message +
+            (errorMessage ? "\n\n" + errorMessage : "");
+        }
+
+        // If we have any error message, show it
+        if (errorMessage) {
+          toast({
+            title: "Error Creating Appointment",
+            description: errorMessage,
+            variant: "destructive",
+            duration: 15000, // Show for 15 seconds
+          });
+          return;
+        }
+      }
+
+      // Fallback error message
       toast({
         title: "Error",
-        description: "Failed to create appointment. Please try again.",
+        description:
+          error?.response?.data?.message ||
+          "Failed to create appointment. Please try again.",
         variant: "destructive",
       });
     } finally {

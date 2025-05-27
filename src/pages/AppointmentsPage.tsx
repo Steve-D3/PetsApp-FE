@@ -189,7 +189,7 @@ export const AppointmentsPage = () => {
       toast({
         title: "Error",
         description: "Failed to refresh appointments. Please try again.",
-        variant: "error"
+        variant: "error",
       });
     } finally {
       setLoading(false);
@@ -326,10 +326,10 @@ export const AppointmentsPage = () => {
 
         {upcomingAppointments.length > 0 && (
           <TimelineSection
-            title="Cancelled Appointments"
+            title="Pending Appointments"
             items={formatEventsForTimeline(
               upcomingAppointments,
-              upcomingAppointments[1].extendedProps.type
+              upcomingAppointments[3].extendedProps.type
             )}
             className="bg-white rounded-xl shadow-sm p-4"
           />
@@ -337,7 +337,7 @@ export const AppointmentsPage = () => {
 
         {upcomingAppointments.length > 0 && (
           <TimelineSection
-            title="Pending Appointments"
+            title="Cancelled Appointments"
             items={formatEventsForTimeline(
               upcomingAppointments,
               upcomingAppointments[2].extendedProps.type
