@@ -1,11 +1,11 @@
 // Atoms
-export * from './atoms';
+export * from "./atoms";
 
 // Molecules
-export * from './molecules';
+export * from "./molecules";
 
 // Organisms
-export * from './organisms';
+export * from "./organisms";
 
 // Templates
-export * from './templates';
+export * from "./templates";

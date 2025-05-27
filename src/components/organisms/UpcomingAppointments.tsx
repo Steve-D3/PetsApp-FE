@@ -24,7 +24,7 @@ export const UpcomingAppointments = ({
   }
 
   return (
-    <div className={`p-4 bg-white rounded-lg shadow-sm ${className}`}>
+    <div className={`p-4`}>
       <h3 className="text-lg font-semibold mb-3">Upcoming Appointments</h3>
       <div className="space-y-3">
         {appointments.map((appt) => (
