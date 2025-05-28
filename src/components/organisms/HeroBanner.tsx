@@ -10,7 +10,9 @@ export const HeroBanner = ({ userName, className = "" }: HeroBannerProps) => {
   const firstName = userName?.split(" ")[0] || "there";
 
   return (
-    <div className={`relative w-full overflow-hidden rounded-lg mx-auto mt-4 mb-6 shadow-lg ${className}`}>
+    <div
+      className={`relative w-full overflow-hidden rounded-lg mx-auto mt-4 mb-6 shadow-lg ${className}`}
+    >
       <div
         className="w-full h-64 bg-center bg-cover bg-no-repeat relative"
         style={{
@@ -32,7 +34,7 @@ export const HeroBanner = ({ userName, className = "" }: HeroBannerProps) => {
               onClick={() => navigate("/appointments")}
               className="px-6 py-2.5 border-2 border-white text-white font-medium rounded-lg hover:bg-white hover:bg-opacity-10 hover:text-black transition-colors duration-200"
             >
-              Book Appointment
+              Appointments
             </button>
             <button
               onClick={() => navigate("/pets")}

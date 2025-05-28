@@ -6,9 +6,9 @@ import petsApi, { type Pet } from "@/features/pets/api/petsApi";
 import {
   PetProfileCard,
   PetQuickStats,
-  AppointmentsSection,
   TreatmentsSection,
   MedicationsSection,
+  VaccinesSection,
 } from "@/components/organisms";
 
 type Treatment = {
@@ -39,6 +39,30 @@ const MOCK_TREATMENTS: Treatment[] = [
     name: "Heartworm Prevention",
     nextDue: "Mar 31, 2023",
     icon: <PawPrint className="h-5 w-5 text-green-500" />,
+  },
+];
+
+const MOCK_VACCINES = [
+  {
+    id: "v1",
+    name: "Rabies",
+    nextDue: "Nov 15, 2023",
+    status: "upcoming" as const,
+    lastAdministered: "Nov 15, 2022",
+  },
+  {
+    id: "v2",
+    name: "Distemper",
+    nextDue: "Sep 30, 2023",
+    status: "overdue" as const,
+    lastAdministered: "Mar 30, 2023",
+  },
+  {
+    id: "v3",
+    name: "Bordetella",
+    nextDue: "Dec 1, 2023",
+    status: "upcoming" as const,
+    lastAdministered: "Jun 1, 2023",
   },
 ];
 
@@ -107,10 +131,6 @@ const ProfilePage = () => {
     // Navigate to health records page
   };
 
-  const handleScheduleAppointment = () => {
-    navigate("/appointments/new");
-  };
-
   const handleViewAllTreatments = () => {
     console.log("View all treatments");
     // Navigate to treatments page
@@ -129,6 +149,11 @@ const ProfilePage = () => {
   const handleEditMedication = (id: string) => {
     console.log("Edit medication:", id);
     // Open edit medication modal or navigate to edit page
+  };
+
+  const handleViewAllVaccines = () => {
+    console.log("View all vaccines");
+    // Navigate to vaccines page
   };
 
   if (loading) {
@@ -184,10 +209,6 @@ const ProfilePage = () => {
 
           {/* Right Column - Details */}
           <div className="lg:col-span-3 space-y-6">
-            <AppointmentsSection
-              onScheduleAppointment={handleScheduleAppointment}
-            />
-
             <TreatmentsSection
               treatments={MOCK_TREATMENTS}
               onViewAll={handleViewAllTreatments}
@@ -198,6 +219,11 @@ const ProfilePage = () => {
               medications={MOCK_MEDICATIONS}
               onViewAll={handleViewAllMedications}
               onEditMedication={handleEditMedication}
+            />
+
+            <VaccinesSection
+              vaccines={MOCK_VACCINES}
+              onViewAll={handleViewAllVaccines}
             />
           </div>
         </div>

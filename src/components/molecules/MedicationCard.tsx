@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pencil } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface MedicationCardProps {
   id: string;
@@ -39,7 +39,7 @@ export const MedicationCard = ({
           onEdit?.(id);
         }}
       >
-        <Pencil className="h-4 w-4" />
+        <Search className="h-4 w-4" />
       </button>
     </div>
   </div>

@@ -4,8 +4,8 @@ import {
   Plus,
   Loader2,
   ClockAlert,
-  Syringe,
   NotebookPenIcon,
+  TimerOffIcon,
 } from "lucide-react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -69,7 +69,7 @@ const formatEventsForTimeline = (events: CalendarEvent[], type: string) => {
         ) : type === "pending" ? (
           <ClockAlert className="h-5 w-5 text-yellow-500" />
         ) : (
-          <Syringe className="h-5 w-5 text-red-500" />
+          <TimerOffIcon className="h-5 w-5 text-red-500" />
         ),
       actionIcon: <NotebookPenIcon className="h-5 w-5 text-gray-500" />,
     }));
@@ -257,11 +257,7 @@ export const AppointmentsPage = () => {
   const upcomingAppointments = events.filter(
     (event) => new Date(event.start as Date) > new Date()
   );
-  const recentConsultations = events.filter(
-    (event) =>
-      event.extendedProps.type === "completed" &&
-      new Date(event.start as Date) <= new Date()
-  );
+
   const recentVaccinations = events.filter(
     (event) =>
       event.extendedProps.type === "confirmed" &&
@@ -316,10 +312,7 @@ export const AppointmentsPage = () => {
         {upcomingAppointments.length > 0 && (
           <TimelineSection
             title="Confirmed Appointments"
-            items={formatEventsForTimeline(
-              upcomingAppointments,
-              upcomingAppointments[0].extendedProps.type
-            )}
+            items={formatEventsForTimeline(upcomingAppointments, "confirmed")}
             className="bg-white rounded-xl shadow-sm p-4"
           />
         )}
@@ -327,10 +320,7 @@ export const AppointmentsPage = () => {
         {upcomingAppointments.length > 0 && (
           <TimelineSection
             title="Pending Appointments"
-            items={formatEventsForTimeline(
-              upcomingAppointments,
-              upcomingAppointments[3].extendedProps.type
-            )}
+            items={formatEventsForTimeline(upcomingAppointments, "pending")}
             className="bg-white rounded-xl shadow-sm p-4"
           />
         )}
@@ -338,18 +328,7 @@ export const AppointmentsPage = () => {
         {upcomingAppointments.length > 0 && (
           <TimelineSection
             title="Cancelled Appointments"
-            items={formatEventsForTimeline(
-              upcomingAppointments,
-              upcomingAppointments[2].extendedProps.type
-            )}
-            className="bg-white rounded-xl shadow-sm p-4"
-          />
-        )}
-
-        {recentConsultations.length > 0 && (
-          <TimelineSection
-            title="Recent Consultations"
-            items={formatEventsForTimeline(recentConsultations, "completed")}
+            items={formatEventsForTimeline(upcomingAppointments, "cancelled")}
             className="bg-white rounded-xl shadow-sm p-4"
           />
         )}

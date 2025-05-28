@@ -46,7 +46,7 @@ export const PetProfileCard = ({
         onClick={onViewHealthRecords}
       >
         <PawPrint className="h-4 w-4 mr-2 text-blue-500" />
-        View Health Records
+        Health Records
       </Button>
     </div>
   </div>
