@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { Pencil } from 'lucide-react';
+import type { ReactNode } from "react";
+import { Pencil } from "lucide-react";
 
 interface TreatmentCardProps {
   id: string;
@@ -16,25 +16,19 @@ export const TreatmentCard = ({
   nextDue,
   icon,
   onEdit,
-  className = ''
+  className = "",
 }: TreatmentCardProps) => (
-  <div 
+  <div
     className={`p-4 hover:bg-gray-50 transition-colors ${className}`}
     onClick={() => onEdit?.(id)}
   >
     <div className="flex items-start cursor-pointer">
-      <div className="bg-blue-50 p-2 rounded-lg mr-3">
-        {icon}
-      </div>
+      <div className="bg-blue-50 p-2 rounded-lg mr-3">{icon}</div>
       <div className="flex-1">
-        <p className="font-medium text-gray-900">
-          {name}
-        </p>
-        <p className="text-sm text-gray-500">
-          Next due: {nextDue}
-        </p>
+        <p className="font-medium text-gray-900">{name}</p>
+        <p className="text-sm text-gray-500">Next due: {nextDue}</p>
       </div>
-      <button 
+      <button
         className="text-gray-400 hover:text-gray-600"
         onClick={(e) => {
           e.stopPropagation();

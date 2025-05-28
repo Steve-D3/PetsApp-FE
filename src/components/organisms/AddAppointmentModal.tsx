@@ -118,18 +118,18 @@ export const AddAppointmentModal = ({
   };
 
   // Handle vet selection change
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleVetSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const vetId = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      veterinarian_id: vetId,
-    }));
-    // Reset time slot and date when vet changes
-    setSelectedTimeSlot("");
-    setAvailableSlots([]);
-    setSelectedDate("");
-  };
+
+  // const handleVetSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   const vetId = e.target.value;
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     veterinarian_id: vetId,
+  //   }));
+  //   // Reset time slot and date when vet changes
+  //   setSelectedTimeSlot("");
+  //   setAvailableSlots([]);
+  //   setSelectedDate("");
+  // };
 
   // Handle date selection change
   const handleDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -361,7 +361,7 @@ export const AddAppointmentModal = ({
 
       onAppointmentAdded();
       onClose();
-    } catch (error) {
+    } catch (error: unknown) {
       // Type assertion for Axios error
       const axiosError = error as {
         response?: {
@@ -419,9 +419,7 @@ export const AddAppointmentModal = ({
       // Fallback error message
       toast({
         title: "Error",
-        description:
-          error?.response?.data?.message ||
-          "Failed to create appointment. Please try again.",
+        description: "Failed to create appointment. Please try again.",
         variant: "destructive",
       });
     } finally {

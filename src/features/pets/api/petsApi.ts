@@ -80,11 +80,13 @@ export interface Pet {
   species: string;
   breed: string;
   gender: string;
-  weight: number;
+  weight: string | number;
   birth_date: string;
   allergies: string;
   food_preferences: string;
   owner: PetOwner;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const api = axios.create({
@@ -214,12 +216,45 @@ const petsApi = {
   getAvailableSlots: async (vetId: number, date: string): Promise<string[]> => {
     try {
       const response = await api.get(`/appointments/available-slots/${vetId}`, {
-        params: { date }
+        params: { date },
       });
       return response.data.slots || [];
     } catch (error) {
-      console.error(`Error fetching available slots for vet ${vetId} on ${date}:`, error);
+      console.error(
+        `Error fetching available slots for vet ${vetId} on ${date}:`,
+        error
+      );
       return [];
+    }
+  },
+
+  /**
+   * Deletes a pet
+   * @param petId The ID of the pet to delete
+   * @returns Promise that resolves when the pet is deleted
+   */
+  deletePet: async (petId: number): Promise<void> => {
+    try {
+      await api.delete(`/pets/${petId}`);
+    } catch (error) {
+      console.error("Error deleting pet:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Updates an existing pet
+   * @param petId The ID of the pet to update
+   * @param petData The updated pet data
+   * @returns Promise with the updated pet
+   */
+  updatePet: async (petId: number, petData: Partial<Pet>): Promise<Pet> => {
+    try {
+      const response = await api.put<{ data: Pet }>(`/pets/${petId}`, petData);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error updating pet:", error);
+      throw error;
     }
   },
 };
