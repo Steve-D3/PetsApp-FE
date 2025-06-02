@@ -185,6 +185,43 @@ const ProfilePage = () => {
     );
   }
 
+  const handleDeletePet = async (id: number): Promise<void> => {
+    try {
+      // Confirm before deleting
+      const confirmDelete = window.confirm(
+        "Are you sure you want to delete this pet? This action cannot be undone."
+      );
+
+      if (!confirmDelete) return;
+
+      // Show loading state
+      setLoading(true);
+
+      // Call the API to delete the pet
+      await petsApi.deletePet(id);
+
+      // Show success message
+      alert("Pet deleted successfully");
+
+      // Redirect to the pets list page
+      navigate("/pets");
+    } catch (error) {
+      console.error("Error deleting pet:", error);
+      setError(
+        error instanceof Error
+          ? `Failed to delete pet: ${error.message}`
+          : "An unexpected error occurred while deleting the pet."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditPet = (id: number): void => {
+    // Navigate to the edit page for this pet
+    navigate(`/pets/${id}/edit`);
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -192,12 +229,15 @@ const ProfilePage = () => {
           {/* Left Column - Profile Card and Quick Stats */}
           <div className="space-y-6">
             <PetProfileCard
+              id={pet.id}
               name={pet.name}
-              photoUrl={pet.photo}
               breed={pet.breed}
               gender={pet.gender}
               birthDate={pet.birth_date}
-              onViewHealthRecords={handleViewHealthRecords}
+              photoUrl={pet.photo}
+              onViewHealthRecords={() => handleViewHealthRecords()}
+              onEdit={(id) => handleEditPet(id)}
+              onDelete={(id) => handleDeletePet(id)}
             />
 
             <PetQuickStats
