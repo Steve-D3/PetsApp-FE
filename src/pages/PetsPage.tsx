@@ -5,11 +5,19 @@ import type { Pet } from "@/features/pets/api/petsApi";
 import { useEffect, useState } from "react";
 import petsApi from "@/features/pets/api/petsApi";
 import { useNavigate } from "react-router-dom";
+import type { PetFormData } from "@/features/pets/types";
+import { useToast } from "@/components/atoms/use-toast";
+import { AddPetModal } from "@/components/organisms/AddPetModal";
+import type { AxiosError } from "axios";
+import authApi from "@/features/auth/api/authApi";
 
 const PetsPage = () => {
   const [pets, setPets] = useState<Pet[]>([]);
+  const [isAddPetModalOpen, setIsAddPetModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,6 +55,45 @@ const PetsPage = () => {
     fetchPets();
   }, [navigate]);
 
+  const handleAddPet = async (data: PetFormData) => {
+    try {
+      setIsSubmitting(true);
+      const user = await authApi.getCurrentUser();
+      const userId = user?.data?.id;
+
+      const response = await petsApi.createPet({
+        ...data,
+        user_id: Number(userId),
+      });
+
+      console.log("Pet created successfully:", response);
+      toast({
+        title: "Success",
+        description: "Pet added successfully!",
+      });
+      setIsAddPetModalOpen(false);
+
+      const updatedPets = await petsApi.getUserPets();
+      setPets(updatedPets);
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      console.error("Error adding pet:", {
+        error,
+        response: error.response?.data,
+      });
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to add pet. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -82,7 +129,7 @@ const PetsPage = () => {
         <div className="flex justify-between items-center mb-1">
           <h1 className="text-2xl font-bold text-gray-900">My Pets</h1>
           <Button
-            onClick={() => navigate("/pets/new")}
+            onClick={() => setIsAddPetModalOpen(true)}
             className="flex items-center"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -93,6 +140,13 @@ const PetsPage = () => {
           Manage your pets' profiles and health records
         </p>
       </div>
+
+      <AddPetModal
+        isOpen={isAddPetModalOpen}
+        onClose={() => setIsAddPetModalOpen(false)}
+        onSubmit={handleAddPet}
+        isLoading={isSubmitting}
+      />
 
       {/* Pets Grid */}
       <div className="px-4 py-4">

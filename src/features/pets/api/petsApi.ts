@@ -1,5 +1,6 @@
 import axios from "axios";
 import { authApi } from "../../../features/auth/api/authApi";
+import type { PetFormData } from "../types";
 
 // Types
 export interface MedicalRecord {
@@ -166,6 +167,11 @@ const petsApi = {
       console.error(`Error fetching pet with ID ${petId}:`, error);
       throw error;
     }
+  },
+
+  createPet: async (data: PetFormData): Promise<Pet> => {
+    const response = await api.post("/pets", data);
+    return response.data;
   },
 
   getPetAppointments: async (petId: number): Promise<Appointment[]> => {

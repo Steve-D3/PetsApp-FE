@@ -56,15 +56,18 @@ export interface PaginatedResponse<T> {
 
 // Form types
 export interface PetFormData {
+  user_id: number;
   name: string;
   species: string;
-  breed: string;
-  gender: string;
-  birth_date: string;
-  weight: string | number;
-  food_preferences: string;
-  allergies: string;
-  photo?: File | string;
+  breed?: string;
+  gender: "Male" | "Female";
+  birth_date?: string; // Format: YYYY-MM-DD
+  weight?: number;
+  microchip_number?: string;
+  sterilized?: boolean;
+  allergies?: string;
+  food_preferences?: string;
+  photo?: string;
 }
 
 export interface MedicalRecord {
