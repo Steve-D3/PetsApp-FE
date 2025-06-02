@@ -115,12 +115,13 @@ const DashboardPage = () => {
     fetchPetsAndAppointments();
   }, [navigate]);
 
-  const handleAppointmentClick = (appointmentId: string) => {
-    navigate(`/appointments/${appointmentId}`);
+  const handleAppointmentClick = () => {
+    navigate(`/appointments`);
   };
 
   const handleFeaturedItemClick = (itemId: string) => {
     // Handle featured item click (e.g., navigate to a specific page or show a modal)
+    // we will change this into websites links
     console.log(`Featured item ${itemId} clicked`);
   };
 
