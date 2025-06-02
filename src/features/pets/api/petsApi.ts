@@ -45,19 +45,18 @@ export interface Veterinarian {
   clinic: Clinic;
 }
 
-export interface PetWithRecords extends Omit<Pet, "owner"> {
-  medical_records: MedicalRecord[];
-}
-
 export interface Appointment {
   id: number;
   pet_id: number;
   veterinarian_id: number;
+  location_id: number;
   start_time: string;
   end_time: string;
-  status: string;
-  notes: string;
-  pet: PetWithRecords;
+  status: "scheduled" | "completed" | "cancelled";
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  pet: Pet;
   veterinarian: Veterinarian;
 }
 
@@ -248,14 +247,52 @@ const petsApi = {
    * @param petData The updated pet data
    * @returns Promise with the updated pet
    */
-  updatePet: async (petId: number, petData: Partial<Pet>): Promise<Pet> => {
-    try {
-      const response = await api.put<{ data: Pet }>(`/pets/${petId}`, petData);
-      return response.data.data;
-    } catch (error) {
-      console.error("Error updating pet:", error);
-      throw error;
-    }
+  updatePet(petId: number, petData: Partial<Pet>): Promise<Pet> {
+    return api
+      .put<{ data: Pet }>(`/pets/${petId}`, petData)
+      .then((response) => response.data.data);
+  },
+
+  /**
+   * Fetches detailed information about a specific appointment
+   * @param appointmentId The ID of the appointment to fetch
+   * @returns Promise with the appointment details
+   */
+  getAppointmentById(appointmentId: string | number): Promise<Appointment> {
+    return api
+      .get<Appointment>(`/appointments/${appointmentId}`)
+      .then((response) => response.data);
+  },
+
+  /**
+   * Cancels an existing appointment
+   * @param appointmentId The ID of the appointment to cancel
+   * @returns Promise that resolves when the appointment is cancelled
+   */
+  cancelAppointment(appointmentId: string | number): Promise<void> {
+    return api
+      .put(`/appointments/${appointmentId}/cancel`)
+      .then((response) => response.data);
+  },
+
+  /**
+   * Updates an existing appointment
+   * @param appointmentId The ID of the appointment to update
+   * @param appointmentData The updated appointment data
+   * @returns Promise with the updated appointment
+   */
+  updateAppointment(
+    appointmentId: string | number,
+    appointmentData: Partial<
+      Omit<Appointment, "id" | "pet" | "veterinarian" | "location">
+    >
+  ): Promise<Appointment> {
+    return api
+      .put<{ data: Appointment }>(
+        `/appointments/${appointmentId}`,
+        appointmentData
+      )
+      .then((response) => response.data.data);
   },
 };
 

@@ -20,13 +20,12 @@ import type {
   EventApi,
   EventClickArg,
 } from "@fullcalendar/core";
-import type {
-  DateClickArg,
-} from "@fullcalendar/interaction";
+import type { DateClickArg } from "@fullcalendar/interaction";
 import { format, addDays, isSameDay } from "date-fns";
 import { TimelineSection } from "@/components/molecules/TimeLineSection";
 import { Button } from "@/components/atoms/Button";
 import { AddAppointmentModal } from "@/components/organisms/AddAppointmentModal";
+import { AppointmentDetailModal } from "@/components/organisms/AppointmentDetailModal";
 import petsApi from "@/features/pets/api/petsApi";
 import { useToast } from "@/components/atoms/use-toast";
 // Simple dialog component since @/components/ui/dialog is not available
@@ -43,17 +42,20 @@ const Dialog = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
         onOpenChange(false);
       }
     };
 
     if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [open, onOpenChange]);
 
@@ -61,7 +63,7 @@ const Dialog = ({
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         ref={modalRef}
         className="bg-white/95 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/20 relative"
       >
@@ -177,8 +179,10 @@ const formatEventsForTimeline = (events: CalendarEvent[], type: string) => {
 export const AppointmentsPage = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    string | null
+  >(null);
   const [isDayModalOpen, setIsDayModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedDateEvents, setSelectedDateEvents] = useState<CalendarEvent[]>(
@@ -187,6 +191,7 @@ export const AppointmentsPage = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const calendarRef = useRef<FullCalendar>(null);
   const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
 
   // Handle window resize for responsive design
   useEffect(() => {
@@ -210,67 +215,13 @@ export const AppointmentsPage = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    const fetchUserPetsAndAppointments = async () => {
-      try {
-        setLoading(true);
-
-        // First, get all the user's pets
-        const userPets = await petsApi.getUserPets();
-
-        if (userPets.length === 0) {
-          setEvents([]);
-          return;
-        }
-
-        // Get all appointments for each pet
-        const petAppointmentsPromises = userPets.map((pet) =>
-          petsApi.getPetAppointments(pet.id)
-        );
-
-        const appointmentsResults = await Promise.all(petAppointmentsPromises);
-
-        // Flatten the array of arrays into a single array of appointments
-        const allAppointments = appointmentsResults.flat();
-
-        const formattedEvents = allAppointments.map((appointment) => {
-          const { type, color } = getAppointmentDetails(appointment.status);
-          // Find the pet details for this appointment
-          const pet = userPets.find((p) => p.id === appointment.pet_id);
-
-          return {
-            id: appointment.id.toString(),
-            title: `Appointment for ${pet?.name || "Pet"}`,
-            start: appointment.start_time,
-            end: appointment.end_time,
-            extendedProps: {
-              type,
-              doctor: `Dr. Vet ${appointment.veterinarian_id || ""}`,
-              status: appointment.status,
-              petName: pet?.name || "Pet",
-            },
-            backgroundColor: color,
-            borderColor: color,
-          };
-        });
-
-        setEvents(formattedEvents);
-      } catch (error) {
-        console.error("Error fetching appointments:", error);
-        setError("Failed to load appointments. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserPetsAndAppointments();
-  }, []);
-
-  const handleAppointmentAdded = async () => {
+  const fetchAppointments = async () => {
     try {
       setLoading(true);
-      // Refresh the appointments list
+
+      // First, get all the user's pets
       const userPets = await petsApi.getUserPets();
+
       if (userPets.length === 0) {
         setEvents([]);
         return;
@@ -282,10 +233,13 @@ export const AppointmentsPage = () => {
       );
 
       const appointmentsResults = await Promise.all(petAppointmentsPromises);
+
+      // Flatten the array of arrays into a single array of appointments
       const allAppointments = appointmentsResults.flat();
 
       const formattedEvents = allAppointments.map((appointment) => {
         const { type, color } = getAppointmentDetails(appointment.status);
+        // Find the pet details for this appointment
         const pet = userPets.find((p) => p.id === appointment.pet_id);
 
         return {
@@ -305,22 +259,32 @@ export const AppointmentsPage = () => {
       });
 
       setEvents(formattedEvents);
-
-      toast({
-        title: "Success",
-        description: "Appointment created successfully!",
-        variant: "success",
-      });
     } catch (error) {
-      console.error("Error refreshing appointments:", error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh appointments. Please try again.",
-        variant: "error",
-      });
+      console.error("Error fetching appointments:", error);
+      setError("Failed to load appointments. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const handleAppointmentAdded = () => {
+    // Refresh appointments when a new one is added
+    fetchAppointments();
+    setIsAddModalOpen(false);
+  };
+
+  const handleAppointmentUpdated = () => {
+    // Refresh appointments when one is updated or cancelled
+    fetchAppointments();
+    toast({
+      title: "Success",
+      description: "Appointment updated successfully!",
+      variant: "success",
+    });
   };
 
   if (loading) {
@@ -373,37 +337,22 @@ export const AppointmentsPage = () => {
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
+    // Extract the appointment ID from the event
     const event = clickInfo.event;
-    const eventDate = event.start
-      ? new Date(event.start.toString())
-      : new Date();
-    setSelectedDate(eventDate);
+    console.log("Calendar event clicked:", event);
+    console.log("Event ID:", event.id);
+    console.log("Extended props:", event.extendedProps);
 
-    // Show just this event in the modal
-    const eventType = event.extendedProps?.type as
-      | "completed"
-      | "confirmed"
-      | "cancelled"
-      | "pending"
-      | undefined;
-    setSelectedDateEvents([
-      {
-        id: event.id,
-        title: event.title,
-        start: event.start ? new Date(event.start.toString()) : new Date(),
-        end: event.end ? new Date(event.end.toString()) : undefined,
-        extendedProps: {
-          type: eventType || "confirmed",
-          doctor: event.extendedProps?.doctor || "",
-          status: event.extendedProps?.status || "scheduled",
-          petName: event.extendedProps?.petName || "Unknown Pet",
-        },
-        backgroundColor: event.backgroundColor as string | undefined,
-        borderColor: event.borderColor as string | undefined,
-      },
-    ]);
-
-    setIsDayModalOpen(true);
+    if (event.id) {
+      setSelectedAppointmentId(event.id);
+    } else {
+      console.error("No ID found on the clicked event");
+      toast({
+        title: "Error",
+        description: "Could not load appointment details. Please try again.",
+        variant: "error",
+      });
+    }
   };
 
   const navigateDay = (direction: "prev" | "next") => {
@@ -629,12 +578,14 @@ export const AppointmentsPage = () => {
                   eventClassNames={(arg) => getEventClassNames(arg.event)}
                   dayHeaderClassNames="text-gray-600 font-medium text-sm uppercase tracking-wider"
                   dayHeaderFormat={{
-                    weekday: isMobile ? "narrow" : "long"
+                    weekday: isMobile ? "narrow" : "long",
                   }}
                   dayHeaderContent={(arg) => {
-                    const dayName = arg.date.toLocaleDateString(undefined, { weekday: 'long' });
+                    const dayName = arg.date.toLocaleDateString(undefined, {
+                      weekday: "long",
+                    });
                     return {
-                      html: isMobile ? dayName.substring(0, 3) : dayName
+                      html: isMobile ? dayName.substring(0, 3) : dayName,
                     };
                   }}
                   views={{
@@ -774,6 +725,13 @@ export const AppointmentsPage = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAppointmentAdded={handleAppointmentAdded}
+      />
+
+      <AppointmentDetailModal
+        isOpen={!!selectedAppointmentId}
+        onClose={() => setSelectedAppointmentId(null)}
+        appointmentId={selectedAppointmentId}
+        onAppointmentUpdated={handleAppointmentUpdated}
       />
     </div>
   );
