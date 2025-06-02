@@ -201,3 +201,207 @@ body {
   position: absolute;
   right: 0.25rem;
 }
+
+.fc {
+  --fc-border-color: #f3f4f6;
+  --fc-now-indicator-color: #ef4444;
+  --fc-today-bg-color: #f8fafc;
+  --fc-page-bg-color: #fff;
+  --fc-small-font-size: 0.85em;
+}
+
+@media (max-width: 640px) {
+  .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .fc .fc-toolbar-title {
+    font-size: 1.2em;
+    margin: 0.5em 0;
+  }
+  .fc .fc-button {
+    padding: 0.3em 0.6em;
+    font-size: 0.85em;
+  }
+  .fc .fc-daygrid-day-number {
+    font-size: 0.9em;
+    padding: 2px;
+  }
+}
+.fc .fc-toolbar {
+  padding: 1.5rem 1.5rem 0.5rem;
+  margin: 0;
+}
+.fc .fc-toolbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+.fc .fc-button {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  color: #374151;
+  transition: all 0.2s ease-in-out;
+}
+.fc .fc-button:not(:disabled):hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+.fc .fc-button:not(:disabled):active,
+.fc .fc-button:not(:disabled).fc-button-active {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  color: #3b82f6;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active:focus,
+.fc .fc-button-primary:not(:disabled):active:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+.fc .fc-button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: #f8fafc;
+}
+.fc .fc-daygrid-day-top {
+  padding: 0.5rem;
+}
+.fc .fc-daygrid-day-number {
+  padding: 0.25rem;
+  color: #4b5563;
+}
+/* today's day number */
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: white;
+  background-color: #3b82f6;
+  font-weight: 600;
+}
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: #f8fafc;
+}
+/* small dot for today */
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-frame::before {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: #3b82f6;
+  border-radius: 50%;
+}
+.fc .fc-daygrid-event {
+  margin: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  border: none;
+  padding: 0.25rem 0.5rem;
+}
+.fc .fc-daygrid-event-harness {
+  margin-bottom: 0.25rem;
+}
+.fc .fc-daygrid-day-bottom {
+  margin-top: 0.25rem;
+}
+.fc .fc-daygrid-more-link {
+  margin: 0.125rem 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.75rem;
+  color: #3b82f6;
+}
+.fc .fc-daygrid-more-link:hover {
+  text-decoration: none;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+}
+.fc .fc-timegrid-now-indicator-line {
+  border-color: #ef4444;
+  border-width: 2px;
+}
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: transparent #ef4444 transparent transparent;
+}
+.fc .fc-timegrid-now-indicator-arrow {
+  margin-top: -4px;
+}
+.fc .fc-timegrid-now-indicator-line {
+  z-index: 4;
+}
+.fc .fc-timegrid-now-indicator-arrow {
+  z-index: 4;
+}
+.fc .fc-timegrid-now-indicator-line {
+  z-index: 4;
+}
+.fc-event {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.fc-daygrid-day-frame {
+  min-height: 8rem; /* Increased height for better spacing */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fc-daygrid-day-events {
+  flex-grow: 1;
+  min-height: 0;
+  margin: 0 !important;
+}
+
+.fc-daygrid-day-top {
+  padding: 4px 4px 2px;
+  text-align: center;
+}
+
+.fc-daygrid-day-number {
+  margin: 0 auto;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.fc-daygrid-event {
+  margin: 2px 0 !important;
+  height: 100%;
+}
+
+.fc-event-main {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+  .fc .fc-toolbar-title {
+    margin: 0.5rem 0;
+  }
+}
