@@ -28,6 +28,7 @@ import { AddAppointmentModal } from "@/components/organisms/AddAppointmentModal"
 import { AppointmentDetailModal } from "@/components/organisms/AppointmentDetailModal";
 import petsApi from "@/features/pets/api/petsApi";
 import { useToast } from "@/components/atoms/use-toast";
+import type { TimelineItem } from "@/lib/types/types";
 // Simple dialog component since @/components/ui/dialog is not available
 const Dialog = ({
   open,
@@ -397,6 +398,20 @@ export const AppointmentsPage = () => {
     );
   };
 
+  const handleTimelineItemClick = async (item: TimelineItem) => {
+    try {
+      const appointment = await petsApi.getAppointmentById(item.id);
+      setSelectedAppointmentId(appointment.id.toString());
+    } catch (error) {
+      console.error("Error fetching appointment details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load appointment details. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Define event class names based on event type
   const getEventClassNames = (event: EventApi) => {
     const type = event.extendedProps?.type;
@@ -629,6 +644,7 @@ export const AppointmentsPage = () => {
                         "confirmed"
                       )}
                       className="bg-white rounded-xl shadow-sm p-4 h-full"
+                      onItemClick={handleTimelineItemClick}
                     />
                   </div>
                 )}
@@ -642,6 +658,7 @@ export const AppointmentsPage = () => {
                         "pending"
                       )}
                       className="bg-white rounded-xl shadow-sm p-4 h-full"
+                      onItemClick={handleTimelineItemClick}
                     />
                   </div>
                 )}
@@ -655,6 +672,7 @@ export const AppointmentsPage = () => {
                         "cancelled"
                       )}
                       className="bg-white rounded-xl shadow-sm p-4 h-full"
+                      onItemClick={handleTimelineItemClick}
                     />
                   </div>
                 )}
@@ -668,6 +686,7 @@ export const AppointmentsPage = () => {
                         "confirmed"
                       )}
                       className="bg-white rounded-xl shadow-sm p-4 h-full"
+                      onItemClick={handleTimelineItemClick}
                     />
                   </div>
                 )}
