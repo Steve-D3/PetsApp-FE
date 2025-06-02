@@ -16,6 +16,7 @@ import { Button } from "@/components/atoms/Button";
 import { useToast } from "@/components/atoms/use-toast";
 import type { Appointment } from "@/features/pets/api/petsApi";
 import petsApi from "@/features/pets/api/petsApi";
+import { Map } from "@/components/atoms/Map";
 import axios, { AxiosError } from "axios";
 
 interface AppointmentDetailModalProps {
@@ -632,8 +633,13 @@ export const AppointmentDetailModal = ({
                 </div>
               </div>
               {/* Map Placeholder - You can integrate with Google Maps or Mapbox here */}
-              <div className="mt-3 h-40 bg-gray-100 rounded-md flex items-center justify-center text-gray-400 text-sm">
-                Map View (Integrate with Maps API)
+              <div className="mt-3 w-full">
+                <div className="relative w-full" style={{ height: "300px" }}>
+                  <Map
+                    address={`${appointment.veterinarian.clinic.address}, ${appointment.veterinarian.clinic.postal_code} ${appointment.veterinarian.clinic.city}, ${appointment.veterinarian.clinic.country}`}
+                    className="h-full w-full rounded-lg"
+                  />
+                </div>
               </div>
             </div>
 
