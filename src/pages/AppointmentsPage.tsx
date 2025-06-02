@@ -608,8 +608,13 @@ export const AppointmentsPage = () => {
                   eventClassNames={(arg) => getEventClassNames(arg.event)}
                   dayHeaderClassNames="text-gray-600 font-medium text-sm uppercase tracking-wider"
                   dayHeaderFormat={{
-                    weekday: isMobile ? "short" : "long",
-                    day: "numeric",
+                    weekday: isMobile ? "narrow" : "long"
+                  }}
+                  dayHeaderContent={(arg) => {
+                    const dayName = arg.date.toLocaleDateString(undefined, { weekday: 'long' });
+                    return {
+                      html: isMobile ? dayName.substring(0, 3) : dayName
+                    };
                   }}
                   views={{
                     dayGridMonth: {

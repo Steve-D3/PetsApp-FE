@@ -393,7 +393,7 @@ body {
 }
 @media (max-width: 768px) {
   .fc .fc-toolbar {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
   }
   .fc .fc-toolbar-chunk {
