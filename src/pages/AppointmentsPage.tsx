@@ -39,14 +39,35 @@ const Dialog = ({
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onOpenChange(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onOpenChange]);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white/95 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/20">
+      <div 
+        ref={modalRef}
+        className="bg-white/95 rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/20 relative"
+      >
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
         >
           <svg
             className="h-6 w-6"
