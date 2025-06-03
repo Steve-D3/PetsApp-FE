@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pill, PawPrint } from "lucide-react";
+import type { PetFormData } from "@/features/pets/types";
 import { Button } from "@/components/atoms/Button";
 import petsApi, { type Pet } from "@/features/pets/api/petsApi";
 import {
@@ -9,7 +10,9 @@ import {
   TreatmentsSection,
   MedicationsSection,
   VaccinesSection,
+  EditPetModal,
 } from "@/components/organisms";
+import { useToast } from "@/components/atoms/use-toast";
 
 type Treatment = {
   id: string;
@@ -88,7 +91,10 @@ const ProfilePage = () => {
   const { petId } = useParams<{ petId: string }>();
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -217,15 +223,74 @@ const ProfilePage = () => {
     }
   };
 
-  const handleEditPet = (id: number): void => {
-    // Navigate to the edit page for this pet
-    navigate(`/pets/${id}/edit`);
+  const handleEditPet = (): void => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleSavePet = async (formData: PetFormData): Promise<void> => {
+    if (!pet) return;
+    
+    try {
+      setIsSaving(true);
+      
+      // Prepare the data for the API call
+      const updateData: Partial<Pet> = {
+        name: formData.name,
+        species: formData.species,
+        breed: formData.breed,
+        gender: formData.gender,
+        birth_date: formData.birth_date,
+        weight: formData.weight,
+        microchip_number: formData.microchip_number,
+        sterilized: formData.sterilized ? 1 : 0,
+        allergies: formData.allergies,
+        food_preferences: formData.food_preferences,
+      };
+      
+      // Call the API to update the pet
+      const updatedPet = await petsApi.updatePet(pet.id, updateData);
+      
+      // Update the local state with the new data
+      setPet(updatedPet);
+      
+      // Close the edit modal
+      setIsEditModalOpen(false);
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Pet updated successfully!",
+        variant: "success",
+      });
+      
+      // Close the modal
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error("Error updating pet:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update pet. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Edit Pet Modal */}
+        {pet && (
+          <EditPetModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSave={handleSavePet}
+            pet={pet}
+            isLoading={isSaving}
+          />
+        )}
           {/* Left Column - Profile Card and Quick Stats */}
           <div className="space-y-6">
             <PetProfileCard
@@ -236,7 +301,7 @@ const ProfilePage = () => {
               birthDate={pet.birth_date}
               photoUrl={pet.photo}
               onViewHealthRecords={() => handleViewHealthRecords()}
-              onEdit={(id) => handleEditPet(id)}
+              onEdit={handleEditPet}
               onDelete={(id) => handleDeletePet(id)}
             />
 

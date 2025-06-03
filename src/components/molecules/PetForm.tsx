@@ -1,6 +1,5 @@
-// src/components/molecules/forms/PetForm.tsx
 import { useForm } from "react-hook-form";
-// import { Button } from "@/components/atoms/Button";
+import { useEffect } from "react";
 import { Input } from "@/components/atoms/Input";
 import { Select } from "@/components/atoms/Select";
 import { Textarea } from "@/components/atoms/Textarea";
@@ -11,23 +10,47 @@ interface PetFormProps {
   onSubmit: (data: PetFormData) => void;
   isSubmitting?: boolean;
   initialData?: Partial<PetFormData>;
-  onClose?: () => void;
+  onCancel?: () => void;
   isLoading?: boolean;
 }
 
 export function PetForm({
   onSubmit,
-  onClose,
+  onCancel,
   isLoading = false,
+  initialData = {},
 }: PetFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<PetFormData>();
 
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      reset(initialData);
+    }
+  }, [reset, initialData]);
+
+  const handleFormSubmit = (data: PetFormData) => {
+    // Prepare the form data with proper types
+    const formData: PetFormData = {
+      ...data,
+      // Ensure weight is a number
+      weight: data.weight || 0,
+      // Ensure required fields have values
+      user_id: data.user_id,
+      name: data.name.trim(),
+      species: data.species.trim(),
+      gender: data.gender as "Male" | "Female",
+    };
+    onSubmit(formData);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           label="Pet Name *"
@@ -111,11 +134,11 @@ export function PetForm({
       />
 
       <div className="flex justify-end space-x-3 pt-4">
-        {onClose && (
+        {onCancel && (
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={onCancel}
             disabled={isLoading}
           >
             Cancel

@@ -8,3 +8,4 @@ export * from "./AppointmentsSection";
 export * from "./TreatmentsSection";
 export * from "./MedicationsSection";
 export * from "./VaccinesSection";
+export * from "./EditPetModal";

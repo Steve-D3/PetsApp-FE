@@ -41,7 +41,7 @@ export const PetProfileCard = ({
 
   return (
     <div
-      className={cn("bg-white rounded-xl shadow-sm overflow-hidden", className)}
+      className={cn("bg-white rounded-xl shadow-sm overflow-hidden'", className)}
     >
       <div className="p-6 text-center">
         <div className="flex justify-center mb-4">
