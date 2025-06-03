@@ -86,6 +86,11 @@ export interface MedicalRecord {
   respiratory_rate: number;
   follow_up_required: boolean;
   follow_up_date: string;
+  pet: Pet;
+  vet: Veterinarian;
+  appointment: Appointment;
+  treatments: Treatment[];
+  vaccinations: Vaccination[];
 }
 
 export interface Clinic {
@@ -101,6 +106,7 @@ export interface Clinic {
 }
 
 export interface Veterinarian {
+  name: string;
   id: number;
   user_id: number;
   license_number: string;
@@ -121,4 +127,51 @@ export interface Appointment {
   notes: string | null;
   pet: Pet;
   veterinarian: Veterinarian;
+}
+
+export interface Vaccination {
+  id: number;
+  pet_id: number;
+  medical_record_id: number;
+  vaccine_type_id: number;
+  manufacturer: string;
+  batch_number: string;
+  serial_number: string;
+  expiration_date: string;
+  administration_date: string;
+  next_due_date: string;
+  administered_by?: number;
+  administration_site: string;
+  administration_route: string;
+  dose: number;
+  dose_unit: string;
+  is_booster: boolean;
+  certification_number?: string;
+  reaction_observed: boolean;
+  reaction_details: string;
+  notes?: string;
+  cost: number;
+  reminder_sent: boolean;
+  created_at: string;
+  updated_at: string;
+  vaccination_type: VaccinationType;
+}
+
+export interface VaccinationType {
+  id: number;
+  name: string;
+  category: string;
+  for_species: string;
+  description: string;
+  default_validity_period: number;
+  is_required_by_law: boolean;
+  minimum_age_days: number;
+  administration_protocol: string;
+  common_manufacturers: string;
+  requires_booster: boolean;
+  booster_waiting_period?: number;
+  default_administration_route: string;
+  default_cost: number;
+  created_at: string;
+  updated_at: string;
 }

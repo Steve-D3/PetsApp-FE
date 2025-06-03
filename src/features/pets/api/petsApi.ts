@@ -11,14 +11,95 @@ export interface MedicalRecord {
   physical_examination: string;
   diagnosis: string;
   treatment_plan: string;
-  medications: string | null;
-  notes: string | null;
+  medications: string;
+  notes: string;
   weight: string;
   temperature: string;
   heart_rate: number;
   respiratory_rate: number;
   follow_up_required: boolean;
-  follow_up_date: string | null;
+  follow_up_date: string;
+  pet: Pet;
+  vet: {
+    id: number;
+    user_id: number;
+    license_number: string;
+    specialty: string;
+    biography: string;
+    phone_number: string;
+    off_days: string[];
+  };
+  appointment: {
+    id: number;
+    pet_id: number;
+    veterinarian_id: number;
+    start_time: string;
+    end_time: string;
+    status: string;
+    notes: string;
+  };
+  treatments: [
+    {
+      id: number;
+      medical_record_id: number;
+      name: string;
+      category: string;
+      description: string;
+      cost: string;
+      quantity: string;
+      unit: string;
+      completed: boolean;
+      administered_at: string;
+      administered_by: number;
+      treatment_type_id: number;
+    }
+  ];
+  vaccinations: [
+    {
+      id: number;
+      pet_id: number;
+      medical_record_id: number;
+      vaccine_type_id: number;
+      manufacturer: string;
+      batch_number: string;
+      serial_number: string;
+      expiration_date: string;
+      administration_date: string;
+      next_due_date: string;
+      administered_by?: number;
+      administration_site: string;
+      administration_route: string;
+      dose: number;
+      dose_unit: string;
+      is_booster: boolean;
+      certification_number?: string;
+      reaction_observed: boolean;
+      reaction_details: string;
+      notes?: string;
+      cost: number;
+      reminder_sent: boolean;
+      created_at: string;
+      updated_at: string;
+      vaccination_type: {
+        id: number;
+        name: string;
+        category: string;
+        for_species: string;
+        description: string;
+        default_validity_period: number;
+        is_required_by_law: boolean;
+        minimum_age_days: number;
+        administration_protocol: string;
+        common_manufacturers: string;
+        requires_booster: boolean;
+        booster_waiting_period?: number;
+        default_administration_route: string;
+        default_cost: number;
+        created_at: string;
+        updated_at: string;
+      };
+    }
+  ];
 }
 
 export interface Clinic {
@@ -229,7 +310,7 @@ const petsApi = {
       // Try with different path structure
       `v1/vets/${vetId}/slots`,
       // Try with different casing
-      `Vets/${vetId}/available-slots`
+      `Vets/${vetId}/available-slots`,
     ];
 
     // Try each endpoint in sequence until one works
@@ -247,21 +328,29 @@ const petsApi = {
           continue;
         }
 
-
         // Handle different response formats
         let slots: string[] = [];
         if (Array.isArray(response.data)) {
           slots = response.data;
         } else if (response.data && Array.isArray(response.data.slots)) {
           slots = response.data.slots;
-        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        } else if (
+          response.data &&
+          response.data.data &&
+          Array.isArray(response.data.data)
+        ) {
           slots = response.data.data;
         } else {
-          console.warn(`Unexpected response format from ${endpoint}:`, response.data);
+          console.warn(
+            `Unexpected response format from ${endpoint}:`,
+            response.data
+          );
           continue;
         }
 
-        console.log(`Successfully fetched ${slots.length} slots from ${endpoint}`);
+        console.log(
+          `Successfully fetched ${slots.length} slots from ${endpoint}`
+        );
         return slots;
       } catch (error) {
         console.warn(`Error with endpoint ${endpoint}:`, error);
@@ -269,19 +358,29 @@ const petsApi = {
       }
     }
 
-
     // If we get here, all endpoints failed
     console.error(`All endpoints failed for vet ${vetId} on ${date}`);
-    
+
     // Return mock data for development purposes
     if (import.meta.env.DEV) {
-      console.warn('Using mock time slots for development');
+      console.warn("Using mock time slots for development");
       return [
-        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-        '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00'
+        "09:00",
+        "09:30",
+        "10:00",
+        "10:30",
+        "11:00",
+        "11:30",
+        "13:00",
+        "13:30",
+        "14:00",
+        "14:30",
+        "15:00",
+        "15:30",
+        "16:00",
       ];
     }
-    
+
     return [];
   },
 
@@ -351,6 +450,19 @@ const petsApi = {
         appointmentData
       )
       .then((response) => response.data.data);
+  },
+
+  /**
+   * Fetches medical records for a specific pet
+   * @param petId The ID of the pet
+   * @returns Promise with array of medical records
+   */
+  getMedicalRecords(petId: string | number): Promise<MedicalRecord[]> {
+    return api
+      .get<MedicalRecord[]>("/medical-records", {
+        params: { pet_id: petId },
+      })
+      .then((response) => response.data);
   },
 };
 

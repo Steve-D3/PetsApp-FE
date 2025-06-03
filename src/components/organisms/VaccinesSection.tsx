@@ -1,17 +1,46 @@
 import { ShieldCheck, Calendar, Syringe } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
-
-type Vaccine = {
-  id: string;
-  name: string;
-  nextDue: string;
-  status: "upcoming" | "overdue" | "completed";
-  lastAdministered?: string;
-};
+import type { Vaccination } from "@/features/pets/types";
 
 type VaccinesSectionProps = {
-  vaccines: Vaccine[];
+  vaccines: Vaccination[];
   onViewAll: () => void;
+};
+
+// const getStatusBadge = (dueDateString: string | null) => {
+//   if (!dueDateString) return 'bg-gray-100 text-gray-800';
+
+//   const dueDate = new Date(dueDateString);
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+
+//   if (isNaN(dueDate.getTime())) return 'bg-gray-100 text-gray-800';
+//   if (dueDate < today) return 'bg-red-100 text-red-800';
+//   if (dueDate <= new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)) {
+//     return 'bg-yellow-100 text-yellow-800';
+//   }
+//   return 'bg-green-100 text-green-800';
+// };
+
+const getStatusText = (dueDateString: string | null) => {
+  if (!dueDateString) return "No Date";
+
+  const dueDate = new Date(dueDateString);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (isNaN(dueDate.getTime())) return "No Date";
+  if (dueDate < today) return "Overdue";
+  if (dueDate <= new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)) {
+    return "Due Soon";
+  }
+  return "Up to Date";
+};
+
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleDateString();
 };
 
 export const VaccinesSection = ({
@@ -67,12 +96,12 @@ export const VaccinesSection = ({
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">
-                        {vaccine.name}
+                        {vaccine.vaccination_type?.name || "Unknown Vaccine"}
                       </h4>
-                      {vaccine.lastAdministered && (
+                      {vaccine.administration_date && (
                         <p className="text-sm text-gray-500 flex items-center">
                           <Calendar className="h-3.5 w-3.5 mr-1" />
-                          Last: {vaccine.lastAdministered}
+                          Last: {formatDate(vaccine.administration_date)}
                         </p>
                       )}
                     </div>
@@ -80,15 +109,16 @@ export const VaccinesSection = ({
                   <div className="flex items-center space-x-4">
                     <span
                       className={`text-xs px-2.5 py-1 rounded-full ${getStatusBadge(
-                        vaccine.status
+                        vaccine.next_due_date
                       )}`}
                     >
-                      {vaccine.status.charAt(0).toUpperCase() +
-                        vaccine.status.slice(1)}
+                      {getStatusText(vaccine.next_due_date)}
                     </span>
                     <div className="text-right">
                       <p className="text-xs text-gray-500">Next Due</p>
-                      <p className="text-sm font-medium">{vaccine.nextDue}</p>
+                      <p className="text-sm font-medium">
+                        {formatDate(vaccine.next_due_date)}
+                      </p>
                     </div>
                   </div>
                 </div>
