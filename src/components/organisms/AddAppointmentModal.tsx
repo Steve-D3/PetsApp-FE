@@ -344,9 +344,10 @@ export const AddAppointmentModal = ({
       const appointmentData = {
         pet_id: parseInt(formData.pet_id, 10),
         veterinarian_id: selectedVet.user_id, // Use the user_id as veterinarian_id for the API
+        location_id: selectedVet.clinic?.id,
         start_time: utcStartTime.toISOString(),
         end_time: utcEndTime.toISOString(),
-        status: "pending",
+        status: "pending" as const,
         notes: formData.notes || "",
       };
 
@@ -499,193 +500,203 @@ export const AddAppointmentModal = ({
 
         {/* Main Content */}
         <div className="px-6 pb-6 space-y-6">
-        {/* Clinic Selection */}
-        <div className="space-y-2">
-          <label
-            htmlFor="clinic"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Select Clinic *
-          </label>
-          <select
-            id="clinic"
-            value={selectedClinicId}
-            onChange={handleClinicChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            disabled={isLoading || clinics.length === 0}
-          >
-            {isLoading ? (
-              <option>Loading clinics...</option>
-            ) : clinics.length === 0 ? (
-              <option>No clinics available</option>
-            ) : (
-              clinics.map((clinic) => (
-                <option key={clinic.id} value={clinic.id}>
-                  {clinic.name}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          {/* Clinic Selection */}
+          <div className="space-y-2">
             <label
-              htmlFor="pet_id"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Pet
-            </label>
-            <select
-              id="pet_id"
-              name="pet_id"
-              value={formData.pet_id}
-              onChange={handleChange}
-              className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-              disabled={isLoading || pets.length === 0}
-              required
-            >
-              {pets.map((pet) => (
-                <option key={pet.id} value={pet.id}>
-                  {pet.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-4">
-            <label
-              htmlFor="veterinarian"
+              htmlFor="clinic"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Veterinarian *
+              Select Clinic *
             </label>
             <select
-              id="veterinarian"
-              name="veterinarian_id"
-              value={formData.veterinarian_id}
-              onChange={handleChange}
+              id="clinic"
+              value={selectedClinicId}
+              onChange={handleClinicChange}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={isLoadingVets || !selectedClinicId || vets.length === 0}
-              required
+              disabled={isLoading || clinics.length === 0}
             >
-              {isLoadingVets ? (
-                <option>Loading veterinarians...</option>
-              ) : !selectedClinicId ? (
-                <option>Please select a clinic first</option>
-              ) : vets.length === 0 ? (
-                <option>No veterinarians available at this clinic</option>
+              {isLoading ? (
+                <option>Loading clinics...</option>
+              ) : clinics.length === 0 ? (
+                <option>No clinics available</option>
               ) : (
-                vets.map((vet) => (
-                  <option key={vet.id} value={vet.id}>
-                    {vet.user?.name || `Vet #${vet.id}`}
+                clinics.map((clinic) => (
+                  <option key={clinic.id} value={clinic.id}>
+                    {clinic.name}
                   </option>
                 ))
               )}
             </select>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {/* Date Picker */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
-                htmlFor="appointment-date"
+                htmlFor="pet_id"
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Appointment Date *
-              </label>
-              <input
-                type="date"
-                id="appointment-date"
-                name="appointment-date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-                disabled={!formData.veterinarian_id || isLoadingSlots}
-                required
-              />
-            </div>
-
-            {/* Time Slot Selection */}
-            <div>
-              <label
-                htmlFor="time-slot"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Available Time Slots *
+                Pet
               </label>
               <select
-                id="time-slot"
-                name="time-slot"
-                value={selectedTimeSlot}
-                onChange={handleTimeSlotChange}
+                id="pet_id"
+                name="pet_id"
+                value={formData.pet_id}
+                onChange={handleChange}
                 className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                disabled={isLoading || pets.length === 0}
+                required
+              >
+                {pets.map((pet) => (
+                  <option key={pet.id} value={pet.id}>
+                    {pet.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="veterinarian"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Veterinarian *
+              </label>
+              <select
+                id="veterinarian"
+                name="veterinarian_id"
+                value={formData.veterinarian_id}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={
-                  !selectedDate || availableSlots.length === 0 || isLoadingSlots
+                  isLoadingVets || !selectedClinicId || vets.length === 0
                 }
                 required
               >
-                <option value="">
-                  {isLoadingSlots
-                    ? "Loading time slots..."
-                    : availableSlots.length === 0
-                    ? "No available slots. Please select another date."
-                    : "Select a time slot"}
-                </option>
-                {availableSlots.map((slot) => {
-                  const date = new Date(slot);
-                  const timeString = date.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
-                  return (
-                    <option key={slot} value={slot}>
-                      {timeString}
+                {isLoadingVets ? (
+                  <option>Loading veterinarians...</option>
+                ) : !selectedClinicId ? (
+                  <option>Please select a clinic first</option>
+                ) : vets.length === 0 ? (
+                  <option>No veterinarians available at this clinic</option>
+                ) : (
+                  vets.map((vet) => (
+                    <option key={vet.id} value={vet.id}>
+                      {vet.user?.name || `Vet #${vet.id}`}
                     </option>
-                  );
-                })}
+                  ))
+                )}
               </select>
             </div>
-          </div>
 
-          {/* Hidden inputs for form submission */}
-          <input type="hidden" name="start_time" value={formData.start_time} />
-          <input type="hidden" name="end_time" value={formData.end_time} />
-          <input type="hidden" name="status" value="pending" />
+            <div className="grid grid-cols-1 gap-4">
+              {/* Date Picker */}
+              <div>
+                <label
+                  htmlFor="appointment-date"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Appointment Date *
+                </label>
+                <input
+                  type="date"
+                  id="appointment-date"
+                  name="appointment-date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  disabled={!formData.veterinarian_id || isLoadingSlots}
+                  required
+                />
+              </div>
 
-          <div>
-            <label
-              htmlFor="notes"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Notes
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={3}
-              className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Add any additional notes..."
+              {/* Time Slot Selection */}
+              <div>
+                <label
+                  htmlFor="time-slot"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Available Time Slots *
+                </label>
+                <select
+                  id="time-slot"
+                  name="time-slot"
+                  value={selectedTimeSlot}
+                  onChange={handleTimeSlotChange}
+                  className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  disabled={
+                    !selectedDate ||
+                    availableSlots.length === 0 ||
+                    isLoadingSlots
+                  }
+                  required
+                >
+                  <option value="">
+                    {isLoadingSlots
+                      ? "Loading time slots..."
+                      : availableSlots.length === 0
+                      ? "No available slots. Please select another date."
+                      : "Select a time slot"}
+                  </option>
+                  {availableSlots.map((slot) => {
+                    // console.log(slot);
+                    const date = new Date(slot);
+                    const timeString = date.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    console.log(timeString);
+                    return (
+                      <option key={slot} value={slot}>
+                        {timeString}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {/* Hidden inputs for form submission */}
+            <input
+              type="hidden"
+              name="start_time"
+              value={formData.start_time}
             />
-          </div>
+            <input type="hidden" name="end_time" value={formData.end_time} />
+            <input type="hidden" name="status" value="pending" />
 
-          <div className="flex justify-end space-x-3 pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading || pets.length === 0}>
-              {isLoading ? "Creating..." : "Create Appointment"}
-            </Button>
-          </div>
-        </form>
+            <div>
+              <label
+                htmlFor="notes"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Notes
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={3}
+                className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="Add any additional notes..."
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading || pets.length === 0}>
+                {isLoading ? "Creating..." : "Create Appointment"}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

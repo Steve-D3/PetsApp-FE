@@ -36,9 +36,20 @@ export const AppointmentDetailModal = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editNotes, setEditNotes] = useState("");
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { toast } = useToast();
+
+  // Reset edit mode when appointment changes
+  useEffect(() => {
+    if (appointment) {
+      setEditNotes(appointment.notes || "");
+      setIsEditing(false);
+    }
+  }, [appointment]);
 
   // Handle keyboard navigation and focus trapping
   useEffect(() => {
@@ -283,6 +294,47 @@ export const AppointmentDetailModal = ({
     }
   };
 
+  const handleUpdateAppointment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!appointment || !appointmentId) return;
+
+    setIsSaving(true);
+
+    try {
+      const updatedAppointment = {
+        ...appointment,
+        notes: editNotes,
+      };
+
+      await petsApi.updateAppointment(appointmentId, {
+        notes: editNotes,
+      });
+
+      setAppointment(updatedAppointment);
+      onAppointmentUpdated?.();
+
+      toast({
+        title: "Success",
+        description: "Appointment updated successfully",
+        variant: "success",
+      });
+
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Error updating appointment:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update appointment";
+
+      toast({
+        title: "Update Failed",
+        description: errorMessage,
+        variant: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleCancelAppointment = async () => {
     if (!appointmentId) {
       toast({
@@ -303,6 +355,13 @@ export const AppointmentDetailModal = ({
     try {
       await petsApi.cancelAppointment(appointmentId);
 
+      // Show success message
+      toast({
+        title: "Appointment Cancelled",
+        description: "Your appointment has been cancelled successfully.",
+        variant: "success",
+      });
+
       // Update the local state to reflect the cancellation
       if (appointment) {
         setAppointment({
@@ -311,12 +370,6 @@ export const AppointmentDetailModal = ({
           updated_at: new Date().toISOString(),
         });
       }
-
-      toast({
-        title: "Appointment Cancelled",
-        description: "Your appointment has been cancelled successfully.",
-        variant: "success",
-      });
 
       // Notify parent component about the update
       onAppointmentUpdated?.();
@@ -343,16 +396,31 @@ export const AppointmentDetailModal = ({
 
   if (!isOpen) return null;
 
-  const getStatusBadge = (status: "scheduled" | "completed" | "cancelled") => {
+  // Check if the appointment is in the future or today
+  const isAppointmentUpcoming = (appointment: Appointment): boolean => {
+    if (!appointment?.start_time) return false;
+
+    const appointmentDate = new Date(appointment.start_time);
+    const today = new Date();
+
+    // Reset both dates to midnight for accurate date comparison
+    today.setHours(0, 0, 0, 0);
+    appointmentDate.setHours(0, 0, 0, 0);
+
+    // Return true if appointment is today or in the future
+    return appointmentDate >= today;
+  };
+
+  const getStatusBadge = (status: "pending" | "confirmed" | "cancelled") => {
     const baseClasses =
       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
 
     switch (status) {
-      case "completed":
+      case "confirmed":
         return (
           <span className={`${baseClasses} bg-green-100 text-green-800`}>
             <CheckCircle2 className="h-3 w-3 mr-1" />
-            Completed
+            Confirmed
           </span>
         );
       case "cancelled":
@@ -362,12 +430,12 @@ export const AppointmentDetailModal = ({
             Cancelled
           </span>
         );
-      case "scheduled":
+      case "pending":
       default:
         return (
           <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
             <Clock3 className="h-3 w-3 mr-1" />
-            Scheduled
+            Pending
           </span>
         );
     }
@@ -637,39 +705,96 @@ export const AppointmentDetailModal = ({
                 <div className="relative w-full" style={{ height: "300px" }}>
                   <Map
                     address={`${appointment.veterinarian.clinic.address}, ${appointment.veterinarian.clinic.postal_code} ${appointment.veterinarian.clinic.city}, ${appointment.veterinarian.clinic.country}`}
-                    className="h-full w-full rounded-lg"
+                    className="rounded-lg"
                   />
                 </div>
               </div>
             </div>
 
             {/* Notes */}
-            {appointment.notes && (
+            {isEditing ? (
+              <form onSubmit={handleUpdateAppointment} className="space-y-4">
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-medium text-gray-900">Notes</h3>
+                  </div>
+                  <textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md p-2 text-sm text-gray-700 focus:ring-blue-500 focus:border-blue-500"
+                    rows={4}
+                    placeholder="Add any notes about the appointment..."
+                  />
+                  <div className="mt-3 flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isSaving}>
+                      {isSaving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            ) : (
               <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">
-                  Notes
-                </h3>
-                <p className="text-sm text-gray-600 whitespace-pre-line">
-                  {appointment.notes}
-                </p>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    Notes
+                  </h3>
+                  {appointment.notes && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(true)}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {appointment.notes ? (
+                  <p className="text-sm text-gray-600 whitespace-pre-line">
+                    {appointment.notes}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    + Add notes
+                  </button>
+                )}
               </div>
             )}
 
             {/* Actions */}
             <div className="pt-2 flex justify-end space-x-3">
-              <Button variant="outline" onClick={onClose}>
-                Close
-              </Button>
-              {appointment.status === "scheduled" && (
-                <Button
-                  variant="outline"
-                  className="border-red-500 text-red-600 hover:bg-red-50"
-                  onClick={handleCancelAppointment}
-                  disabled={isCancelling}
-                >
-                  {isCancelling ? "Cancelling..." : "Cancel Appointment"}
-                </Button>
-              )}
+              {appointment.status === "pending" &&
+                isAppointmentUpcoming(appointment) && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      onClick={() => setIsEditing(true)}
+                      disabled={isEditing}
+                    >
+                      Edit Appointment
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-red-500 text-red-600 hover:bg-red-50"
+                      onClick={handleCancelAppointment}
+                      disabled={isCancelling}
+                    >
+                      {isCancelling ? "Cancelling..." : "Cancel Appointment"}
+                    </Button>
+                  </>
+                )}
             </div>
           </div>
         )}

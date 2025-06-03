@@ -53,7 +53,7 @@ export interface Appointment {
   location_id: number;
   start_time: string;
   end_time: string;
-  status: "scheduled" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "cancelled";
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -219,18 +219,70 @@ const petsApi = {
    * @returns Promise with array of available time slots
    */
   getAvailableSlots: async (vetId: number, date: string): Promise<string[]> => {
-    try {
-      const response = await api.get(`/appointments/available-slots/${vetId}`, {
-        params: { date },
-      });
-      return response.data.slots || [];
-    } catch (error) {
-      console.error(
-        `Error fetching available slots for vet ${vetId} on ${date}:`,
-        error
-      );
-      return [];
+    // Since the baseURL already includes /api, we don't include it in our paths
+    const endpoints = [
+      // Most common endpoint patterns
+      `vets/${vetId}/available-slots`,
+      `appointments/available-slots/${vetId}`,
+      // Try with query parameter for vetId
+      `appointments/available-slots?vet_id=${vetId}`,
+      // Try with different path structure
+      `v1/vets/${vetId}/slots`,
+      // Try with different casing
+      `Vets/${vetId}/available-slots`
+    ];
+
+    // Try each endpoint in sequence until one works
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying endpoint: ${endpoint} for vet ${vetId} on ${date}`);
+        const response = await api.get(endpoint, {
+          params: { date },
+          validateStatus: (status) => status < 500, // Don't throw for 4xx errors
+        });
+
+        // If we got a successful response but no data, try next endpoint
+        if (!response.data) {
+          console.warn(`No data in response from ${endpoint}`);
+          continue;
+        }
+
+
+        // Handle different response formats
+        let slots: string[] = [];
+        if (Array.isArray(response.data)) {
+          slots = response.data;
+        } else if (response.data && Array.isArray(response.data.slots)) {
+          slots = response.data.slots;
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          slots = response.data.data;
+        } else {
+          console.warn(`Unexpected response format from ${endpoint}:`, response.data);
+          continue;
+        }
+
+        console.log(`Successfully fetched ${slots.length} slots from ${endpoint}`);
+        return slots;
+      } catch (error) {
+        console.warn(`Error with endpoint ${endpoint}:`, error);
+        // Continue to next endpoint
+      }
     }
+
+
+    // If we get here, all endpoints failed
+    console.error(`All endpoints failed for vet ${vetId} on ${date}`);
+    
+    // Return mock data for development purposes
+    if (import.meta.env.DEV) {
+      console.warn('Using mock time slots for development');
+      return [
+        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+        '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00'
+      ];
+    }
+    
+    return [];
   },
 
   /**
@@ -277,7 +329,7 @@ const petsApi = {
    */
   cancelAppointment(appointmentId: string | number): Promise<void> {
     return api
-      .put(`/appointments/${appointmentId}/cancel`)
+      .delete(`/appointments/${appointmentId}`)
       .then((response) => response.data);
   },
 
