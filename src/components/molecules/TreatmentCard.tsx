@@ -1,42 +1,25 @@
-import type { ReactNode } from "react";
-import { Search } from "lucide-react";
-
-interface TreatmentCardProps {
-  id: string;
-  name: string;
-  nextDue: string;
-  icon: ReactNode;
-  onEdit?: (id: string) => void;
-  className?: string;
-}
+import type { TreatmentCardProps } from "@/features/pets/types/treatment";
 
 export const TreatmentCard = ({
-  id,
   name,
-  nextDue,
+  administered_at,
   icon,
-  onEdit,
   className = "",
-}: TreatmentCardProps) => (
-  <div
-    className={`p-4 hover:bg-gray-50 transition-colors ${className}`}
-    onClick={() => onEdit?.(id)}
-  >
-    <div className="flex items-start cursor-pointer">
-      <div className="bg-blue-50 p-2 rounded-lg mr-3">{icon}</div>
-      <div className="flex-1">
-        <p className="font-medium text-gray-900">{name}</p>
-        <p className="text-sm text-gray-500">Next due: {nextDue}</p>
+}: TreatmentCardProps) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // The main card click is handled by the parent component
+  };
+
+  return (
+    <div className={`p-4 hover:bg-gray-50 transition-colors ${className}`}>
+      <div className="flex items-start">
+        <div className="bg-blue-50 p-2 rounded-lg mr-3">{icon}</div>
+        <div className="flex-1 cursor-pointer" onClick={handleClick}>
+          <p className="font-medium text-gray-900">{name}</p>
+          <p className="text-sm text-gray-500">Date: {administered_at}</p>
+        </div>
       </div>
-      <button
-        className="text-gray-400 hover:text-gray-600"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit?.(id);
-        }}
-      >
-        <Search className="h-4 w-4" />
-      </button>
     </div>
-  </div>
-);
+  );
+};

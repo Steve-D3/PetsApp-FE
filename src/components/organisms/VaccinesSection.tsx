@@ -1,10 +1,15 @@
+import { useState } from "react";
 import { ShieldCheck, Calendar, Syringe } from "lucide-react";
 import { Button } from "@/components/atoms/Button";
 import type { Vaccination } from "@/features/pets/types";
+import { DetailModal } from "./DetailModal";
 
 type VaccinesSectionProps = {
   vaccines: Vaccination[];
   onViewAll: () => void;
+  onEditVaccine?: never;
+  onDeleteVaccine?: never;
+  isLoading?: boolean;
 };
 
 // const getStatusBadge = (dueDateString: string | null) => {
@@ -44,9 +49,31 @@ const formatDate = (dateString: string | null) => {
 };
 
 export const VaccinesSection = ({
-  vaccines,
+  vaccines = [],
   onViewAll,
+  isLoading = false,
 }: VaccinesSectionProps) => {
+  const [selectedVaccine, setSelectedVaccine] = useState<Vaccination | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleVaccineClick = (vaccine: Vaccination) => {
+    setSelectedVaccine(vaccine);
+    setIsModalOpen(true);
+  };
+
+  // Edit and delete functionality removed as it's not available for pet owners
+
+  const getDetails = (vaccine: Vaccination) => [
+    { label: 'Vaccine', value: vaccine.vaccination_type?.name || 'Unknown' },
+    { label: 'Manufacturer', value: vaccine.manufacturer || 'Not specified' },
+    { label: 'Batch Number', value: vaccine.batch_number || 'Not specified' },
+    { label: 'Administered On', value: formatDate(vaccine.administration_date) },
+    { label: 'Expires On', value: formatDate(vaccine.expiration_date) },
+    { label: 'Next Due', value: formatDate(vaccine.next_due_date) },
+    { label: 'Status', value: getStatusText(vaccine.next_due_date) },
+    { label: 'Administered By', value: vaccine.administered_by ? `Vet #${vaccine.administered_by}` : 'Not specified' },
+    { label: 'Notes', value: vaccine.notes || 'No notes available' },
+  ];
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "upcoming":
@@ -61,72 +88,77 @@ export const VaccinesSection = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold">Vaccinations</h3>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onViewAll}
-              className="text-sm text-blue-600 hover:bg-blue-50"
-            >
-              View All
-            </Button>
-          </div>
+    <>
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900">Vaccinations</h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onViewAll}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading...' : 'View All'}
+          </Button>
         </div>
-      </div>
-      <div className="p-0">
-        {vaccines.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
-            <p>No vaccination records found.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {vaccines.map((vaccine) => (
-              <li key={vaccine.id} className="p-4 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
+        <div className="divide-y divide-gray-100">
+          {isLoading ? (
+            <div className="p-4 text-center text-gray-500">Loading vaccinations...</div>
+          ) : vaccines.length > 0 ? (
+            vaccines.slice(0, 3).map((vaccine) => (
+              <div
+                key={vaccine.id}
+                className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => handleVaccineClick(vaccine)}
+              >
+                <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 rounded-full bg-blue-50">
-                      <Syringe className="h-5 w-5 text-blue-600" />
+                      <ShieldCheck className="h-5 w-5 text-blue-500" />
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">
-                        {vaccine.vaccination_type?.name || "Unknown Vaccine"}
+                        {vaccine.vaccination_type?.name || "Vaccine"}
                       </h4>
-                      {vaccine.administration_date && (
-                        <p className="text-sm text-gray-500 flex items-center">
-                          <Calendar className="h-3.5 w-3.5 mr-1" />
-                          Last: {formatDate(vaccine.administration_date)}
-                        </p>
-                      )}
+                      <div className="flex items-center mt-1 text-sm text-gray-500">
+                        <Calendar className="h-4 w-4 mr-1.5" />
+                        <span>{formatDate(vaccine.administration_date)}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center">
                     <span
-                      className={`text-xs px-2.5 py-1 rounded-full ${getStatusBadge(
-                        vaccine.next_due_date
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
+                        getStatusText(vaccine.next_due_date)
                       )}`}
                     >
                       {getStatusText(vaccine.next_due_date)}
                     </span>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Next Due</p>
-                      <p className="text-sm font-medium">
-                        {formatDate(vaccine.next_due_date)}
-                      </p>
-                    </div>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                {vaccine.next_due_date && (
+                  <div className="mt-2 text-sm text-gray-500 flex items-center">
+                    <Syringe className="h-4 w-4 mr-1.5 text-gray-400" />
+                    <span>Next due: {formatDate(vaccine.next_due_date)}</span>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              No vaccination records found
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <DetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={selectedVaccine?.vaccination_type?.name || 'Vaccine Details'}
+        description={`Administered on ${selectedVaccine?.administration_date ? formatDate(selectedVaccine.administration_date) : 'unknown date'}`}
+        details={selectedVaccine ? getDetails(selectedVaccine) : []}
+      />
+    </>
   );
 };

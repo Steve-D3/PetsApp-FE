@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Pill, PawPrint } from "lucide-react";
-import type { MedicalRecord, PetFormData } from "@/features/pets/types";
+import { Pill } from "lucide-react";
+import type { PetFormData } from "@/features/pets/types";
+import type { MedicalRecord } from "@/features/pets/api/petsApi";
 import { Button } from "@/components/atoms/Button";
 import petsApi from "@/features/pets/api/petsApi";
 import { useToast } from "@/components/atoms/use-toast";
@@ -14,21 +15,6 @@ import {
   EditPetModal,
 } from "@/components/organisms";
 
-type TreatmentItem = {
-  id: number;
-  medical_record_id: number;
-  name: string;
-  category: string;
-  description?: string;
-  cost: string;
-  quantity: string;
-  unit: string;
-  completed: boolean;
-  administered_at: string;
-  treatment_type_id: number;
-  vet: string;
-  icon: React.ReactNode;
-};
 // Import types from the API
 import type { Pet as ApiPet } from "../features/pets/api/petsApi";
 
@@ -37,52 +23,7 @@ interface Pet extends Omit<ApiPet, "weight"> {
   weight: number | string; // Allow both number and string for weight
 }
 
-interface VaccinationType {
-  id: number;
-  name: string;
-  category: string;
-  for_species: string;
-  description: string;
-  default_validity_period: number;
-  is_required_by_law: boolean;
-  minimum_age_days: number;
-  administration_protocol: string | null;
-  common_manufacturers: string;
-  requires_booster: boolean;
-  booster_waiting_period?: number;
-  default_administration_route: string;
-  default_cost: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Vaccination {
-  id: number;
-  pet_id: number;
-  medical_record_id: number;
-  vaccine_type_id: number;
-  manufacturer: string;
-  batch_number: string;
-  serial_number: string;
-  expiration_date: string;
-  administration_date: string;
-  next_due_date: string | null;
-  administered_by?: number;
-  administration_site: string;
-  administration_route: string;
-  dose: number;
-  dose_unit: string;
-  is_booster: boolean;
-  certification_number?: string;
-  reaction_observed: boolean;
-  reaction_details: string | null;
-  notes?: string;
-  cost: number;
-  reminder_sent: boolean;
-  created_at: string;
-  updated_at: string;
-  vaccination_type: VaccinationType;
-}
+// Using types from @/features/pets/types
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -169,7 +110,7 @@ const ProfilePage = () => {
   }, [pet, fetchMedicalRecords]);
 
   // Transform medical records data for the UI
-  const treatments: TreatmentItem[] = medicalRecords.flatMap((record) =>
+  const treatments = medicalRecords.flatMap((record) =>
     (record.treatments || []).map((treatment) => {
       const formatDate = (dateString: string) => {
         if (!dateString) return "N/A";
@@ -191,10 +132,46 @@ const ProfilePage = () => {
         administered_by: Number(treatment.administered_by) || 0,
         treatment_type_id: Number(treatment.treatment_type_id) || 0,
         icon: <Pill className="h-5 w-5 text-purple-500" />,
-        vet: record.vet?.name || "Unknown",
+        vet: record.vet?.license_number || "Unknown",
       };
     })
   );
+
+  // Helper function to parse medication name and dosage from a string
+  const parseMedication = (medString: string) => {
+    // Split the string into parts
+    const parts = medString.trim().split(/\s+/);
+    if (parts.length < 2) {
+      return {
+        name: medString.trim(),
+        dosage: "N/A",
+        frequency: "As needed",
+      };
+    }
+
+    // The first part is the medication name
+    const name = parts[0];
+    // The rest is the dosage and frequency
+    const dosageAndFreq = parts.slice(1).join(" ");
+
+    // Try to split dosage and frequency
+    const freqMatch = dosageAndFreq.match(/(.+?)\s*,\s*(.+)/);
+
+    if (freqMatch) {
+      return {
+        name: name,
+        dosage: freqMatch[1].trim(),
+        frequency: freqMatch[2].trim(),
+      };
+    }
+
+    // If no frequency specified, use default
+    return {
+      name: name,
+      dosage: dosageAndFreq,
+      frequency: "As needed",
+    };
+  };
 
   const medications = medicalRecords.flatMap((record) => {
     if (!record.medications) return [];
@@ -206,36 +183,58 @@ const ProfilePage = () => {
         const parsed = JSON.parse(record.medications);
         // If it's an array, use it as is
         if (Array.isArray(parsed)) {
-          return parsed.map((med, index) => ({
-            id: `med-${record.id}-${index}`,
-            name: med.name || med.medication || "Unknown Medication",
-            dosage: med.dosage || med.dose || "N/A",
-            frequency: med.frequency || "As needed",
-            startDate: med.startDate || med.date || record.record_date,
-            endDate: med.endDate || "",
-            icon: <Pill className="h-5 w-5 text-purple-500" />,
-          }));
+          return parsed.map((med, index) => {
+            const medData =
+              typeof med === "string"
+                ? parseMedication(med)
+                : {
+                    name: med.name || med.medication || "Unknown Medication",
+                    dosage: med.dosage || med.dose || "N/A",
+                    frequency: med.frequency || "As needed",
+                  };
+
+            return {
+              id: `med-${record.id}-${index}`,
+              name: medData.name,
+              dosage: medData.dosage,
+              frequency: medData.frequency,
+              startDate: med.startDate || med.date || record.record_date,
+              endDate: med.endDate || "",
+              icon: <Pill className="h-5 w-5 text-purple-500" />,
+            };
+          });
         }
-        // If it's a single medication object
+
+        // If it's a single medication object or string
+        const medData =
+          typeof parsed === "string"
+            ? parseMedication(parsed)
+            : {
+                name: parsed.name || parsed.medication || "Unknown Medication",
+                dosage: parsed.dosage || parsed.dose || "N/A",
+                frequency: parsed.frequency || "As needed",
+              };
+
         return [
           {
             id: `med-${record.id}-0`,
-            name: parsed.name || parsed.medication || "Unknown Medication",
-            dosage: parsed.dosage || parsed.dose || "N/A",
-            frequency: parsed.frequency || "As needed",
+            name: medData.name,
+            dosage: medData.dosage,
+            frequency: medData.frequency,
             startDate: parsed.startDate || parsed.date || record.record_date,
             endDate: parsed.endDate || "",
             icon: <Pill className="h-5 w-5 text-purple-500" />,
           },
         ];
-      } catch (e) {
+      } catch {
         // If parsing fails, treat the whole string as a medication name
+        const medData = parseMedication(record.medications);
         return [
           {
             id: `med-${record.id}-0`,
-            name: record.medications,
-            dosage: "N/A",
-            frequency: "As needed",
+            name: medData.name,
+            dosage: medData.dosage,
+            frequency: medData.frequency,
             startDate: record.record_date,
             endDate: "",
             icon: <Pill className="h-5 w-5 text-purple-500" />,
@@ -244,28 +243,43 @@ const ProfilePage = () => {
       }
     }
 
-    // If medications is already an array
-    if (Array.isArray(record.medications)) {
-      return record.medications.map((med, index) => ({
-        id: `med-${record.id}-${index}`,
-        name: med.name || med.medication || "Unknown Medication",
-        dosage: med.dosage || med.dose || "N/A",
-        frequency: med.frequency || "As needed",
-        startDate: med.startDate || med.date || record.record_date,
-        endDate: med.endDate || "",
-        icon: <Pill className="h-5 w-5 text-purple-500" />,
-      }));
-    }
+    // // If medications is already an array
+    // if (Array.isArray(record.medications)) {
+    //   return record.medications.map((med, index) => {
+    //     const medData =
+    //       typeof med === "string"
+    //         ? parseMedication(med)
+    //         : {
+    //             name: med.name || med.medication || "Unknown Medication",
+    //             dosage: med.dosage || med.dose || "N/A",
+    //             frequency: med.frequency || "As needed",
+    //           };
+
+    //     return {
+    //       id: `med-${record.id}-${index}`,
+    //       name: medData.name,
+    //       dosage: medData.dosage,
+    //       frequency: medData.frequency,
+    //       startDate: med.startDate || med.date || record.record_date,
+    //       endDate: med.endDate || "",
+    //       icon: <Pill className="h-5 w-5 text-purple-500" />,
+    //     };
+    //   });
+    // }
 
     return [];
   });
 
   // Get all non-medication vaccines
   const vaccines = medicalRecords.flatMap((record) =>
-    (record.vaccinations || []).filter(
-      (vaccine) => vaccine.vaccination_type?.category !== "Medication"
-    )
-  ) as unknown as Vaccination[];
+    (record.vaccinations || [])
+      .filter((vaccine) => vaccine.vaccination_type?.category !== "Medication")
+      .map(vaccine => ({
+        ...vaccine,
+        next_due_date: vaccine.next_due_date || '', // Ensure next_due_date is not null
+        reaction_details: vaccine.reaction_details || '' // Ensure reaction_details is not null
+      }))
+  ) as unknown as import('@/features/pets/types').Vaccination[];
 
   const handleViewAllHealthRecords = useCallback(() => {
     if (!pet) return;
@@ -277,27 +291,20 @@ const ProfilePage = () => {
   const handleViewAllTreatments = () => {
     console.log("View all treatments");
     // Navigate to treatments page
-  };
-
-  const handleEditTreatment = (id: string) => {
-    console.log("Edit treatment:", id);
-    // Open edit treatment modal or navigate to edit page
+    navigate("/treatments");
   };
 
   const handleViewAllMedications = () => {
     console.log("View all medications");
     // Navigate to medications page
-  };
-
-  const handleEditMedication = (id: string) => {
-    console.log("Edit medication:", id);
-    // Open edit medication modal or navigate to edit page
+    navigate("/medications");
   };
 
   const handleViewAllVaccines = () => {
-    console.log("View all vaccines");
-    // Navigate to vaccines page
+    navigate(`/pets/${petId}/vaccines`);
   };
+
+  // Vaccine edit and delete handlers removed as they're not available for pet owners
 
   if (loading) {
     return (
@@ -454,14 +461,12 @@ const ProfilePage = () => {
             <TreatmentsSection
               treatments={treatments}
               onViewAll={handleViewAllTreatments}
-              onEditTreatment={handleEditTreatment}
               isLoading={isLoadingRecords}
             />
 
             <MedicationsSection
               medications={medications}
               onViewAll={handleViewAllMedications}
-              onEditMedication={handleEditMedication}
               isLoading={isLoadingRecords}
             />
 
