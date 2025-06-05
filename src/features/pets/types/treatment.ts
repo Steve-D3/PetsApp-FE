@@ -9,6 +9,7 @@ export interface TreatmentItem {
   name: string;
   category: string;
   description?: string;
+  notes?: string;
   cost: string;
   quantity: string;
   unit: string;
