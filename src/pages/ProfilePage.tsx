@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Pill } from "lucide-react";
+import { BriefcaseMedical, Pill } from "lucide-react";
 import type { PetFormData } from "@/features/pets/types";
 import type { MedicalRecord } from "@/features/pets/api/petsApi";
 import { Button } from "@/components/atoms/Button";
@@ -131,7 +131,7 @@ const ProfilePage = () => {
         administered_at: formatDate(treatment.administered_at),
         administered_by: Number(treatment.administered_by) || 0,
         treatment_type_id: Number(treatment.treatment_type_id) || 0,
-        icon: <Pill className="h-5 w-5 text-purple-500" />,
+        icon: <BriefcaseMedical className="h-5 w-5 text-blue-500" />,
         vet: record.vet?.license_number || "Unknown",
       };
     })
@@ -274,12 +274,12 @@ const ProfilePage = () => {
   const vaccines = medicalRecords.flatMap((record) =>
     (record.vaccinations || [])
       .filter((vaccine) => vaccine.vaccination_type?.category !== "Medication")
-      .map(vaccine => ({
+      .map((vaccine) => ({
         ...vaccine,
-        next_due_date: vaccine.next_due_date || '', // Ensure next_due_date is not null
-        reaction_details: vaccine.reaction_details || '' // Ensure reaction_details is not null
+        next_due_date: vaccine.next_due_date || "", // Ensure next_due_date is not null
+        reaction_details: vaccine.reaction_details || "", // Ensure reaction_details is not null
       }))
-  ) as unknown as import('@/features/pets/types').Vaccination[];
+  ) as unknown as import("@/features/pets/types").Vaccination[];
 
   const handleViewAllHealthRecords = useCallback(() => {
     if (!pet) return;
