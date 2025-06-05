@@ -41,7 +41,7 @@ export function PetForm({
       // Ensure weight is a number
       weight: data.weight || 0,
       // Ensure required fields have values
-      user_id: data.user_id,
+      user_id: initialData.user_id || data.user_id,
       name: data.name.trim(),
       species: data.species.trim(),
       gender: data.gender as "Male" | "Female",

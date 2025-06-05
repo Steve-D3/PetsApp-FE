@@ -15,15 +15,20 @@ import {
 } from "@/components/organisms";
 
 type TreatmentItem = {
-  id: string;
+  id: number;
+  medical_record_id: number;
   name: string;
   category: string;
-  description: string;
-  date: string;
-  nextDue: string;
+  description?: string;
+  cost: string;
+  quantity: string;
+  unit: string;
+  completed: boolean;
+  administered_at: string;
+  treatment_type_id: number;
+  vet: string;
   icon: React.ReactNode;
 };
-
 // Import types from the API
 import type { Pet as ApiPet } from "../features/pets/api/petsApi";
 
@@ -165,50 +170,94 @@ const ProfilePage = () => {
 
   // Transform medical records data for the UI
   const treatments: TreatmentItem[] = medicalRecords.flatMap((record) =>
-    (record.treatments || []).map((treatment) => ({
-      id: treatment.id.toString(),
-      name: treatment.name,
-      category: treatment.category,
-      description: treatment.description,
-      date: record.record_date,
-      nextDue: record.follow_up_date || "N/A",
-      icon: <PawPrint className="h-5 w-5 text-blue-500" />,
-      vet: record.vet?.name || "Unknown",
-    }))
+    (record.treatments || []).map((treatment) => {
+      const formatDate = (dateString: string) => {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? "N/A" : date.toISOString().split("T")[0];
+      };
+
+      return {
+        id: Number(treatment.id), // Ensure this is a number
+        medical_record_id: record.id,
+        name: treatment.name,
+        category: treatment.category || "Unknown",
+        description: treatment.description || "No description available",
+        cost: treatment.cost?.toString() || "0",
+        quantity: treatment.quantity?.toString() || "0",
+        unit: treatment.unit || "",
+        completed: Boolean(treatment.completed),
+        administered_at: formatDate(treatment.administered_at),
+        administered_by: Number(treatment.administered_by) || 0,
+        treatment_type_id: Number(treatment.treatment_type_id) || 0,
+        icon: <Pill className="h-5 w-5 text-purple-500" />,
+        vet: record.vet?.name || "Unknown",
+      };
+    })
   );
 
   const medications = medicalRecords.flatMap((record) => {
-    // If medications is a JSON string, parse it
-    let meds = [];
-    try {
-      meds = record.medications ? JSON.parse(record.medications) : [];
-    } catch (e) {
-      // If it's not valid JSON, treat it as a simple string
-      console.error("Error parsing medications:", e);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load medications.",
-      });
-      if (record.medications) {
-        meds = [{ name: record.medications }];
+    if (!record.medications) return [];
+
+    // If medications is a string but not a JSON array, treat it as a single medication
+    if (typeof record.medications === "string") {
+      try {
+        // Try to parse as JSON first
+        const parsed = JSON.parse(record.medications);
+        // If it's an array, use it as is
+        if (Array.isArray(parsed)) {
+          return parsed.map((med, index) => ({
+            id: `med-${record.id}-${index}`,
+            name: med.name || med.medication || "Unknown Medication",
+            dosage: med.dosage || med.dose || "N/A",
+            frequency: med.frequency || "As needed",
+            startDate: med.startDate || med.date || record.record_date,
+            endDate: med.endDate || "",
+            icon: <Pill className="h-5 w-5 text-purple-500" />,
+          }));
+        }
+        // If it's a single medication object
+        return [
+          {
+            id: `med-${record.id}-0`,
+            name: parsed.name || parsed.medication || "Unknown Medication",
+            dosage: parsed.dosage || parsed.dose || "N/A",
+            frequency: parsed.frequency || "As needed",
+            startDate: parsed.startDate || parsed.date || record.record_date,
+            endDate: parsed.endDate || "",
+            icon: <Pill className="h-5 w-5 text-purple-500" />,
+          },
+        ];
+      } catch (e) {
+        // If parsing fails, treat the whole string as a medication name
+        return [
+          {
+            id: `med-${record.id}-0`,
+            name: record.medications,
+            dosage: "N/A",
+            frequency: "As needed",
+            startDate: record.record_date,
+            endDate: "",
+            icon: <Pill className="h-5 w-5 text-purple-500" />,
+          },
+        ];
       }
     }
 
-    // If meds is not an array at this point, make it an empty array
-    if (!Array.isArray(meds)) {
-      meds = [];
+    // If medications is already an array
+    if (Array.isArray(record.medications)) {
+      return record.medications.map((med, index) => ({
+        id: `med-${record.id}-${index}`,
+        name: med.name || med.medication || "Unknown Medication",
+        dosage: med.dosage || med.dose || "N/A",
+        frequency: med.frequency || "As needed",
+        startDate: med.startDate || med.date || record.record_date,
+        endDate: med.endDate || "",
+        icon: <Pill className="h-5 w-5 text-purple-500" />,
+      }));
     }
 
-    return meds.map((med: any) => ({
-      id: Math.random().toString(), // Generate a unique ID since we don't have one
-      name: med.name || "Unknown Medication",
-      dosage: med.dosage || med.dose || "N/A",
-      frequency: med.frequency || "As needed",
-      startDate: med.startDate || record.record_date,
-      endDate: med.endDate || "",
-      icon: <Pill className="h-5 w-5 text-purple-500" />,
-    }));
+    return [];
   });
 
   // Get all non-medication vaccines

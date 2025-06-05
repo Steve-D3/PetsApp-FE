@@ -164,7 +164,9 @@ export const AppointmentDetailModal = ({
           location_id: responseData.location_id,
           start_time: responseData.start_time,
           end_time: responseData.end_time,
-          status: responseData.status || "scheduled",
+          status:
+            (responseData.status as "pending" | "confirmed" | "cancelled") ??
+            "pending",
           notes: responseData.notes,
           created_at: responseData.created_at,
           updated_at: responseData.updated_at,

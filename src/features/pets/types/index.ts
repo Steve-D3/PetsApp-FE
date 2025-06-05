@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 // Base Pet type
 export interface Pet {
   id: number;
@@ -13,13 +15,20 @@ export interface Pet {
   created_at?: string;
   updated_at?: string;
 }
-
-// Treatment type
 export interface Treatment {
+  administered_at: string;
+  category: string;
   id: string;
   name: string;
   nextDue: string;
-  icon: React.ReactNode;
+  description?: string;
+  cost?: number;
+  quantity?: number;
+  unit?: string;
+  completed?: boolean;
+  administered_by?: number;
+  treatment_type_id?: number;
+  icon: ReactNode; // after adding the import above
 }
 
 // Medication type
@@ -123,7 +132,7 @@ export interface Appointment {
   veterinarian_id: number;
   start_time: string; // ISO 8601 datetime string
   end_time: string; // ISO 8601 datetime string
-  status: "scheduled" | "completed" | "cancelled" | "no-show";
+  status: "pending" | "confirmed" | "cancelled"; // align with API
   notes: string | null;
   pet: Pet;
   veterinarian: Veterinarian;

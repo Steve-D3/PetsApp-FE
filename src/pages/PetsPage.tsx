@@ -204,7 +204,7 @@ const PetsPage = () => {
             </p>
             <div className="mt-6">
               <Button
-                onClick={() => navigate("/pets/new")}
+                onClick={() => setIsAddPetModalOpen(true)}
                 className="inline-flex items-center"
               >
                 <Plus className="-ml-1 mr-2 h-4 w-4" />
