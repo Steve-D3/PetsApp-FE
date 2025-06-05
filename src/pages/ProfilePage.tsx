@@ -13,6 +13,7 @@ import {
   MedicationsSection,
   VaccinesSection,
   EditPetModal,
+  HealthRecordsModal,
 } from "@/components/organisms";
 
 // Import types from the API
@@ -35,6 +36,8 @@ const ProfilePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(true);
+  const [isHealthRecordsModalOpen, setIsHealthRecordsModalOpen] = useState(false);
+  const [isLoadingHealthRecords, setIsLoadingHealthRecords] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -281,12 +284,25 @@ const ProfilePage = () => {
       }))
   ) as unknown as import("@/features/pets/types").Vaccination[];
 
-  const handleViewAllHealthRecords = useCallback(() => {
+  const handleViewAllHealthRecords = useCallback(async () => {
     if (!pet) return;
 
-    console.log("Refreshing medical records...");
-    fetchMedicalRecords();
-  }, [pet, fetchMedicalRecords]);
+    try {
+      setIsLoadingHealthRecords(true);
+      const records = await petsApi.getMedicalRecords(pet.id);
+      setMedicalRecords(records);
+      setIsHealthRecordsModalOpen(true);
+    } catch (error) {
+      console.error('Failed to fetch health records:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load health records. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingHealthRecords(false);
+    }
+  }, [pet, toast]);
 
   const handleViewAllTreatments = () => {
     console.log("View all treatments");
@@ -425,15 +441,23 @@ const ProfilePage = () => {
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Edit Pet Modal */}
+          {/* Modals */}
           {pet && (
-            <EditPetModal
-              isOpen={isEditModalOpen}
-              onClose={() => setIsEditModalOpen(false)}
-              onSave={handleSavePet}
-              pet={pet}
-              isLoading={isSaving}
-            />
+            <>
+              <EditPetModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                onSave={handleSavePet}
+                pet={pet}
+                isLoading={isSaving}
+              />
+              <HealthRecordsModal
+                isOpen={isHealthRecordsModalOpen}
+                onClose={() => setIsHealthRecordsModalOpen(false)}
+                records={medicalRecords}
+                isLoading={isLoadingHealthRecords}
+              />
+            </>
           )}
           {/* Left Column - Profile Card and Quick Stats */}
           <div className="space-y-6">
