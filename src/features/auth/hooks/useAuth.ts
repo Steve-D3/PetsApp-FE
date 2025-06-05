@@ -2,10 +2,11 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../api/authApi";
 
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role?: string;
   current_team_id?: number | null;
   profile_photo_path?: string | null;
@@ -94,7 +95,7 @@ export const useAuth = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   const register = useCallback(async (userData: RegisterData) => {
     setIsLoading(true);

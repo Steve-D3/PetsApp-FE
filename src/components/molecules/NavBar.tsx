@@ -17,7 +17,7 @@ export const NavBar = () => {
       />
       <NavItem icon={<Cat />} label="Pets" onClick={() => navigate("/pets")} />
       <NavItem
-        icon={<Settings />}
+        icon={<Settings className="h-5 w-5" />}
         label="Settings"
         onClick={() => navigate("/settings")}
       />

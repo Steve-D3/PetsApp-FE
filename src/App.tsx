@@ -15,6 +15,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import PetsPage from "./pages/PetsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
+import SettingsPage from "./pages/settings";
 import { useAuth } from "./features/auth/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
@@ -133,6 +134,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppointmentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />
