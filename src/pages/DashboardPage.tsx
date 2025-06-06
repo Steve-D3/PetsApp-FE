@@ -146,7 +146,7 @@ const DashboardPage = () => {
 
   return (
     <DashboardLayout>
-      <HeroBanner userName={user?.name || "there"} />
+      <HeroBanner userName={user?.data?.data?.name || "there"} />
 
       <div className="px-4 space-y-6">
         <UpcomingAppointments
