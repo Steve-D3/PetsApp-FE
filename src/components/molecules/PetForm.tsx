@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Input } from "@/components/atoms/Input";
 import { Select } from "@/components/atoms/Select";
 import { Textarea } from "@/components/atoms/Textarea";
@@ -27,10 +27,16 @@ export function PetForm({
     reset,
   } = useForm<PetFormData>();
 
+  const previousInitialData = useRef<Partial<PetFormData> | undefined>(undefined);
+
   // Reset form when initialData changes
   useEffect(() => {
-    if (initialData) {
-      reset(initialData);
+    // Only reset if initialData exists and is different from previous
+    if (initialData && JSON.stringify(initialData) !== JSON.stringify(previousInitialData.current)) {
+      reset(initialData, {
+        keepDefaultValues: true
+      });
+      previousInitialData.current = initialData;
     }
   }, [reset, initialData]);
 

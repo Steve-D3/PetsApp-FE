@@ -29,18 +29,27 @@ export const AddAppointmentModal = ({
   const [vets, setVets] = useState<Veterinarian[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingVets, setIsLoadingVets] = useState(false);
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  // Define the structure of a time slot
+  type TimeSlot =
+    | {
+        time: string;
+        formatted: string;
+      }
+    | string;
+
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
 
   useEffect(() => {
     toastRef.current = toast;
-  }, [toast]);
+  }, [toast, availableSlots]);
 
   const [formData, setFormData] = useState(() => {
     const startTime = new Date();
     const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutes after start time
+    console.log("Available slots updated:", availableSlots);
 
     return {
       pet_id: "",
@@ -73,7 +82,7 @@ export const AddAppointmentModal = ({
       });
       return [];
     }
-  }, []);
+  }, [toastRef]);
 
   // Fetch vets based on selected clinic
   const fetchVetsByClinic = useCallback(async (clinicId: string) => {
@@ -152,7 +161,26 @@ export const AddAppointmentModal = ({
         parseInt(formData.veterinarian_id, 10),
         date
       );
-      setAvailableSlots(slots);
+
+      // Convert string array to TimeSlot objects if needed
+      const processedSlots = Array.isArray(slots)
+        ? slots
+            .map((slot: TimeSlot) => {
+              if (typeof slot === "string") {
+                return slot;
+              } else if (slot && typeof slot === "object" && "time" in slot) {
+                return {
+                  time: slot.time,
+                  formatted: slot.formatted || slot.time,
+                };
+              }
+              console.warn("Invalid time slot format:", slot);
+              return null;
+            })
+            .filter((slot): slot is TimeSlot => slot !== null)
+        : [];
+
+      setAvailableSlots(processedSlots);
     } catch (error) {
       console.error("Error fetching time slots:", error);
       toastRef.current({
@@ -160,6 +188,7 @@ export const AddAppointmentModal = ({
         description: "Failed to load available time slots. Please try again.",
         variant: "destructive",
       });
+      setAvailableSlots([]);
     } finally {
       setIsLoadingSlots(false);
     }
@@ -167,26 +196,68 @@ export const AddAppointmentModal = ({
 
   // Handle time slot selection
   const handleTimeSlotChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const timeSlot = e.target.value;
-    setSelectedTimeSlot(timeSlot);
+    const slotValue = e.target.value;
 
-    // Update form data with the combined date and time
-    if (selectedDate && timeSlot) {
-      const timeParts = timeSlot.split(" ")[1].split(":");
-      const hours = timeParts[0];
-      const minutes = timeParts[1];
+    if (!slotValue) {
+      setSelectedTimeSlot("");
+      setFormData((prev) => ({
+        ...prev,
+        start_time: "",
+        end_time: "",
+      }));
+      return;
+    }
 
-      const startTime = new Date(selectedDate);
-      startTime.setHours(parseInt(hours, 10));
-      startTime.setMinutes(parseInt(minutes, 10));
+    try {
+      // Find the selected slot in availableSlots
+      const selectedSlot = availableSlots.find((slot) =>
+        typeof slot === "string" ? slot === slotValue : slot.time === slotValue
+      );
 
-      const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 minutes slot
+      if (!selectedSlot) {
+        throw new Error("Selected time slot not found");
+      }
+
+      let startDateTime: Date;
+
+      // Create a date object from the selected date and time
+      if (selectedDate) {
+        if (typeof selectedSlot === "string") {
+          // Handle string time slots (HH:MM format)
+          const [hours, minutes] = selectedSlot.split(":").map(Number);
+          startDateTime = new Date(selectedDate);
+          startDateTime.setHours(hours, minutes, 0, 0);
+        } else {
+          // Handle object time slots with time property (HH:MM:SS format)
+          const [hours, minutes] = selectedSlot.time.split(":").map(Number);
+          startDateTime = new Date(selectedDate);
+          startDateTime.setHours(hours, minutes, 0, 0);
+        }
+      } else {
+        throw new Error("No date selected");
+      }
+
+      if (isNaN(startDateTime.getTime())) {
+        throw new Error("Invalid date/time in selected time slot");
+      }
+
+      const endDateTime = new Date(startDateTime.getTime() + 30 * 60 * 1000); // 30 minutes slot
 
       setFormData((prev) => ({
         ...prev,
-        start_time: startTime.toISOString().slice(0, 16),
-        end_time: endTime.toISOString().slice(0, 16),
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
       }));
+
+      setSelectedTimeSlot(slotValue);
+    } catch (error) {
+      console.error("Error processing selected time slot:", error);
+      toast({
+        title: "Error",
+        description: "Invalid time slot selected. Please try again.",
+        variant: "destructive",
+      });
+      setSelectedTimeSlot("");
     }
   };
 
@@ -219,7 +290,7 @@ export const AddAppointmentModal = ({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchClinics]);
 
   useEffect(() => {
     if (isOpen) {
@@ -579,11 +650,16 @@ export const AddAppointmentModal = ({
                 ) : vets.length === 0 ? (
                   <option>No veterinarians available at this clinic</option>
                 ) : (
-                  vets.map((vet) => (
-                    <option key={vet.id} value={vet.id}>
-                      {vet.user?.name || `Vet #${vet.id}`}
-                    </option>
-                  ))
+                  vets.map(
+                    (vet) => (
+                      console.log(vet),
+                      (
+                        <option key={vet.user_id} value={vet.user_id}>
+                          {vet.user?.name || `Vet #${vet.id}`}
+                        </option>
+                      )
+                    )
+                  )
                 )}
               </select>
             </div>
@@ -638,20 +714,56 @@ export const AddAppointmentModal = ({
                       ? "No available slots. Please select another date."
                       : "Select a time slot"}
                   </option>
-                  {availableSlots.map((slot) => {
-                    // console.log(slot);
-                    const date = new Date(slot);
-                    const timeString = date.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
-                    console.log(timeString);
-                    return (
-                      <option key={slot} value={slot}>
-                        {timeString}
+                  {availableSlots
+                    .map((slot, index) => {
+                      try {
+                        // Handle both string and object time slots
+                        if (typeof slot === "string") {
+                          // If it's a string, use it as both value and label
+                          return {
+                            value: slot,
+                            label: slot,
+                            key: `slot-${slot}-${index}`,
+                          };
+                        } else if (
+                          slot &&
+                          typeof slot === "object" &&
+                          "time" in slot
+                        ) {
+                          // If it's an object with time and formatted properties
+                          return {
+                            value: slot.time,
+                            label: slot.formatted || slot.time,
+                            key: `slot-${slot.time}-${index}`,
+                          };
+                        } else {
+                          console.warn("Unexpected time slot format:", slot);
+                          return null;
+                        }
+                      } catch (error) {
+                        console.error(
+                          "Error processing time slot:",
+                          error,
+                          "Slot:",
+                          slot
+                        );
+                        return null;
+                      }
+                    })
+                    .filter(
+                      (
+                        slot
+                      ): slot is {
+                        value: string;
+                        label: string;
+                        key: string;
+                      } => slot !== null
+                    ) // Type guard to filter out nulls
+                    .map((slot) => (
+                      <option key={slot.key} value={slot.value}>
+                        {slot.label}
                       </option>
-                    );
-                  })}
+                    ))}
                 </select>
               </div>
             </div>

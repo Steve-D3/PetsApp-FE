@@ -25,7 +25,14 @@ export function EditPetModal({
 
   // Transform pet data to match form data format
   // Ensure user ID is a number
-  const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+  const userId = user.id ? 
+    (typeof user.id === "string" ? parseInt(user.id, 10) : user.id) : 
+    null;
+  
+  if (!userId) {
+    console.error('No user ID found');
+    return null;
+  }
 
   const initialData: PetFormData = {
     user_id: userId,
@@ -34,13 +41,17 @@ export function EditPetModal({
     breed: pet.breed,
     gender: (pet.gender as "Male" | "Female") || "Male",
     birth_date: pet.birth_date,
-    weight: typeof pet.weight === 'number' ? pet.weight : 
-           typeof pet.weight === 'string' ? parseFloat(pet.weight) || 0 : 0,
+    weight:
+      typeof pet.weight === "number"
+        ? pet.weight
+        : typeof pet.weight === "string"
+        ? parseFloat(pet.weight) || 0
+        : 0,
     microchip_number: pet.microchip_number,
     sterilized: Boolean(pet.sterilized),
     allergies: pet.allergies,
     food_preferences: pet.food_preferences,
-    photo: pet.photo
+    photo: pet.photo,
   };
 
   return (

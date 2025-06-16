@@ -170,6 +170,7 @@ export interface Pet {
   updated_at?: string;
 }
 
+// Create axios instance with default config
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
@@ -204,14 +205,23 @@ const petsApi = {
    */
   async getUserPets(): Promise<Pet[]> {
     try {
+      // Get the token from localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found. Please log in.");
+      }
+
+      // Set the authorization header
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
       // Get the current user to ensure we're authenticated and get the correct user ID
       const user = await authApi.getCurrentUser();
       if (!user) {
         throw new Error("No authenticated user found. Please log in.");
       }
 
-      // Get the user ID - check both user.data.id and user.id
-      const userId = user.data?.id || user.id;
+      // Get the user ID
+      const userId = user.id;
 
       if (!userId) {
         console.error("User object structure:", JSON.stringify(user, null, 2));

@@ -2,33 +2,38 @@ import axios, { type AxiosError } from "axios";
 import type { AxiosResponse } from "axios";
 
 // Types
-interface User {
+interface UserData {
   id: string;
   name: string;
   email: string;
-  role?: string;
-  current_team_id?: number | null;
-  profile_photo_path?: string | null;
-  profile_photo_url?: string;
-  data?: {
-    id: string;
-    name?: string;
-    email?: string;
-    role?: string;
-    current_team_id?: number | null;
-    profile_photo_path?: string | null;
-    profile_photo_url?: string;
-  };
+  email_verified_at?: string;
+  role: string;
+  current_team_id: number | null;
+  profile_photo_path: string | null;
+  profile_photo_url: string;
 }
 
-interface LoginResponse {
-  user: User;
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  config: {
+    headers: {
+      [key: string]: string;
+    };
+    [key: string]: unknown;
+  };
+  request: object;
+}
+
+interface AuthResponse extends ApiResponse<UserData> {
   token: string;
 }
 
-interface RegisterResponse {
-  user: User;
-}
+// Auth response types
+type LoginResponse = AuthResponse;
+type RegisterResponse = AuthResponse;
 
 interface LoginCredentials {
   email: string;
@@ -106,85 +111,64 @@ export const authApi = {
    */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      console.log("Sending login request to /login with:", credentials);
-      const response = await api.post<{
+      const response = await api.post("/login", credentials);
+      
+      // Log the response for debugging
+      console.log('Login response:', response.data);
+      
+      // Extract token and user data from the response
+      const responseData = response.data as {
         access_token: string;
         token_type: string;
-        user: {
-          id: number;
-          name: string;
-          email: string;
-          role: string;
-          current_team_id: number | null;
-          profile_photo_path: string | null;
-          profile_photo_url: string;
-        };
-      }>("/login", credentials);
-
-      console.log("API response:", response.data);
-
-      const { access_token: token, user } = response.data;
-
+        user: UserData;
+      };
+      
+      const token = responseData.access_token;
+      const userData = responseData.user;
+      
       if (!token) {
-        console.error("No access_token in response:", response.data);
-        throw new Error("Authentication failed: No access token received");
+        console.error('No access_token in response:', response.data);
+        throw new Error("No access token received from server");
       }
-
-      if (!user) {
-        console.error("No user data in response:", response.data);
-        throw new Error("Authentication failed: No user data received");
+      
+      if (!userData) {
+        console.error('No user data in response:', response.data);
+        throw new Error("No user data received from server");
       }
-
-      // Store the token
+      
+      // Store the token in localStorage
       localStorage.setItem("token", token);
-
-      // Map the API user to our User type
-      const mappedUser: User = {
-        id: String(user.id),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        current_team_id: user.current_team_id,
-        profile_photo_path: user.profile_photo_path,
-        profile_photo_url: user.profile_photo_url,
-      };
-
+      
+      // Set the default Authorization header
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Return the response in the expected format
       return {
-        user: mappedUser,
-        token,
+        ...response.data,
+        data: userData,
+        token: token
       };
-    } catch (error: unknown) {
-      console.error("Login API error:", error);
-
-      // Handle Axios error response
+    } catch (error) {
       if (axios.isAxiosError(error)) {
-        if (error.response) {
+        const axiosError = error as AxiosError<ApiError>;
+        if (axiosError.response) {
           // The request was made and the server responded with a status code
           // that falls out of the range of 2xx
-          const errorData = error.response.data || {};
-          const errorMessage =
-            errorData.message || errorData.error || "Login failed";
-          console.error(
-            "Server responded with error:",
-            error.response.status,
-            errorMessage
-          );
           throw new Error(
-            `Login failed: ${errorMessage} (${error.response.status})`
+            axiosError.response.data?.message || "Login failed"
           );
-        } else if (error.request) {
+        } else if (axiosError.request) {
           // The request was made but no response was received
-          console.error("No response received:", error.request);
-          throw new Error(
-            "No response from server. Please check your connection."
-          );
+          throw new Error("No response received from server");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          throw new Error(axiosError.message);
         }
       }
-
-      // Handle other types of errors
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      throw new Error(`Login failed: ${errorMessage}`);
+      throw new Error("An unexpected error occurred");
     }
   },
 
@@ -195,18 +179,20 @@ export const authApi = {
    */
   async register(userData: RegisterData): Promise<RegisterResponse> {
     try {
-      console.log("Sending registration request with:", userData);
-      const response = await api.post("/register", userData);
-
-      // The API returns the user data directly
-      const user = response.data as User;
-
-      // If the response includes a token, store it
-      if (response.data?.token) {
-        localStorage.setItem("token", response.data.token);
+      const response = await api.post<RegisterResponse>("/register", userData);
+      const { token } = response.data;
+      
+      if (!token) {
+        throw new Error("No token received from server");
       }
-
-      return { user };
+      
+      // Store the token in localStorage
+      localStorage.setItem("token", token);
+      
+      // Set the default Authorization header
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      
+      return response.data;
     } catch (error) {
       console.error("Registration API error:", error);
 
@@ -235,13 +221,36 @@ export const authApi = {
   },
 
   /**
-   * Fetches the currently authenticated user's data
+   * Gets the currently authenticated user's data
    * @returns Promise with the current user's data
    */
-  async getCurrentUser(): Promise<User> {
-    const response = await api.get<User>("/me");
-    // The interceptor already returns the data part, so we can cast it directly
-    return response as unknown as User;
+  async getCurrentUser(): Promise<UserData> {
+    // First try to get user data from localStorage
+    const userDataStr = localStorage.getItem('user');
+    if (userDataStr) {
+      try {
+        const userData = JSON.parse(userDataStr);
+        if (userData && userData.id) {
+          return userData;
+        }
+      } catch (e) {
+        console.error('Error parsing user data from localStorage:', e);
+      }
+    }
+    
+    // If no user data in localStorage, try to fetch it from the API
+    try {
+      const response = await api.get<{ data: UserData }>("/me");
+      if (response.data && response.data.data) {
+        // Cache the user data in localStorage
+        localStorage.setItem('user', JSON.stringify(response.data.data));
+        return response.data.data;
+      }
+      throw new Error('No user data in response');
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      throw new Error('Failed to fetch current user. Please log in again.');
+    }
   },
 
   /**

@@ -15,13 +15,13 @@ import {
 type Theme = "light" | "dark" | "system";
 type DateFormat = "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
 
-interface ProfileData {
+type ProfileData = {
   name: string;
   email: string;
   password: string;
   newPassword: string;
   confirmPassword: string;
-}
+};
 
 export const ProfileSettings = () => {
   const { user } = useAuth();
@@ -29,14 +29,14 @@ export const ProfileSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(
-    user?.data?.data?.profile_photo_url || null
+    user?.profile_photo_url || null
   );
   const [isUploading, setIsUploading] = useState(false);
 
   // Initialize form with user data
   const [profileData, setProfileData] = useState<ProfileData>({
-    name: user?.data?.data?.name || "",
-    email: user?.data?.data?.email || "",
+    name: user?.name || "",
+    email: user?.email || "",
     password: "",
     newPassword: "",
     confirmPassword: "",
@@ -44,13 +44,13 @@ export const ProfileSettings = () => {
 
   // Update form when user data changes
   useEffect(() => {
-    if (user?.data) {
+    if (user) {
       setProfileData((prev) => ({
         ...prev,
-        name: user.data.data.name || "",
-        email: user.data.data.email || "",
+        name: user.name || "",
+        email: user.email || "",
       }));
-      setProfileImage(user.data.data.profile_photo_url || null);
+      setProfileImage(user.profile_photo_url || null);
     }
   }, [user]);
 
@@ -144,7 +144,7 @@ export const ProfileSettings = () => {
             ) : (
               <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
                 <span className="text-4xl">
-                  {user?.data?.name?.[0]?.toUpperCase() || "U"}
+                  {user?.name?.[0]?.toUpperCase() || "U"}
                 </span>
               </div>
             )}

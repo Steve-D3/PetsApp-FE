@@ -36,7 +36,8 @@ const ProfilePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(true);
-  const [isHealthRecordsModalOpen, setIsHealthRecordsModalOpen] = useState(false);
+  const [isHealthRecordsModalOpen, setIsHealthRecordsModalOpen] =
+    useState(false);
   const [isLoadingHealthRecords, setIsLoadingHealthRecords] = useState(false);
   const { toast } = useToast();
 
@@ -76,18 +77,13 @@ const ProfilePage = () => {
     fetchPet();
   }, [navigate, petId]);
 
+  // Update the fetchMedicalRecords function to remove medicalRecords from dependencies
   const fetchMedicalRecords = useCallback(async () => {
     if (!pet) return;
 
-    const currentPetId = pet.id;
-    const hasRecordsForThisPet = medicalRecords.some(
-      (record) => record.pet.id === currentPetId
-    );
-    if (hasRecordsForThisPet) return;
-
-    setIsLoadingRecords(true);
     try {
-      const records = await petsApi.getMedicalRecords(currentPetId);
+      setIsLoadingRecords(true);
+      const records = await petsApi.getMedicalRecords(pet.id);
       setMedicalRecords(records);
     } catch (error) {
       console.error("Error fetching medical records:", error);
@@ -99,7 +95,12 @@ const ProfilePage = () => {
     } finally {
       setIsLoadingRecords(false);
     }
-  }, [pet, medicalRecords, toast]);
+  }, [pet]); // Removed medicalRecords from dependencies
+
+  // Update the useEffect to only run when pet changes
+  useEffect(() => {
+    fetchMedicalRecords();
+  }, [fetchMedicalRecords]); // Only depends on fetchMedicalRecords
 
   // Fetch medical records when pet data is loaded or changes
   useEffect(() => {
@@ -293,11 +294,11 @@ const ProfilePage = () => {
       setMedicalRecords(records);
       setIsHealthRecordsModalOpen(true);
     } catch (error) {
-      console.error('Failed to fetch health records:', error);
+      console.error("Failed to fetch health records:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to load health records. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load health records. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsLoadingHealthRecords(false);

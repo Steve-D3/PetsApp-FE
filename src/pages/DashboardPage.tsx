@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import petsApi, {
-  type Pet,
-  type Appointment,
-} from "@/features/pets/api/petsApi";
+import petsApi, { type Appointment } from "@/features/pets/api/petsApi";
 import { LoadingSpinner, ErrorDisplay } from "@/components/atoms";
 import { DashboardLayout } from "@/components/templates";
 import {
@@ -14,32 +11,41 @@ import {
 } from "@/components/organisms";
 
 const DashboardPage = () => {
-  const { user } = useAuth();
-
-  const [, setPets] = useState<Pet[]>([]);
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  // We don't need to store pets in state since we're only using it for fetching appointments
   const [appointments, setAppointments] = useState<
     (Appointment & { petName: string })[]
   >([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Handle authentication and data fetching
   useEffect(() => {
+    // If still loading auth state, do nothing
+    if (isAuthLoading) return;
+    
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    // If we get here, we're authenticated and can fetch data
+
     const fetchPetsAndAppointments = async () => {
       try {
-        const token = localStorage.getItem("token");
+        setIsLoading(true);
+        setError(null);
 
-        // Check if user is authenticated
+        // Check if we have a token
+        const token = localStorage.getItem('token');
         if (!token) {
-          setError("Please log in to view your dashboard");
-          setLoading(false);
-          navigate("/login");
-          return;
+          throw new Error('No authentication token found. Please log in.');
         }
 
-        // Fetch pets
+        // Fetch pets and their appointments
         const petsResponse = await petsApi.getUserPets();
-        setPets(petsResponse);
 
         // Fetch appointments for all pets
         if (petsResponse.length > 0) {
@@ -108,12 +114,12 @@ const DashboardPage = () => {
           setError("An unexpected error occurred");
         }
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchPetsAndAppointments();
-  }, [navigate]);
+  }, [isAuthenticated, isAuthLoading, navigate]);
 
   const handleAppointmentClick = () => {
     navigate(`/appointments`);
@@ -125,10 +131,11 @@ const DashboardPage = () => {
     console.log(`Featured item ${itemId} clicked`);
   };
 
-  if (loading) {
+  // Show loading state while checking authentication or loading data
+  if (isLoading || isAuthLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <LoadingSpinner size={12} />
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
       </div>
     );
   }
@@ -138,7 +145,7 @@ const DashboardPage = () => {
       <div className="p-4">
         <ErrorDisplay
           error={error}
-          showLoginButton={error.includes("log in")}
+          showLoginButton={error.toLowerCase().includes("log in") || error.toLowerCase().includes("session")}
         />
       </div>
     );
@@ -146,7 +153,7 @@ const DashboardPage = () => {
 
   return (
     <DashboardLayout>
-      <HeroBanner userName={user?.data?.data?.name || "there"} />
+      <HeroBanner userName={user?.name || "there"} />
 
       <div className="px-4 space-y-6">
         <UpcomingAppointments

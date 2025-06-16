@@ -9,7 +9,6 @@ import type { PetFormData } from "@/features/pets/types";
 import { useToast } from "@/components/atoms/use-toast";
 import { AddPetModal } from "@/components/organisms/AddPetModal";
 import type { AxiosError } from "axios";
-import authApi from "@/features/auth/api/authApi";
 
 const PetsPage = () => {
   const [pets, setPets] = useState<Pet[]>([]);
@@ -58,13 +57,12 @@ const PetsPage = () => {
   const handleAddPet = async (data: PetFormData) => {
     try {
       setIsSubmitting(true);
-      const user = await authApi.getCurrentUser();
-      const userId = user?.data?.id;
+      
+      if (!data.user_id) {
+        throw new Error('User ID is required');
+      }
 
-      const response = await petsApi.createPet({
-        ...data,
-        user_id: Number(userId),
-      });
+      const response = await petsApi.createPet(data);
 
       console.log("Pet created successfully:", response);
       toast({
@@ -160,9 +158,7 @@ const PetsPage = () => {
               >
                 <div className="relative h-48 bg-gray-100">
                   <img
-                    src={
-                      "https://www.pdinsurance.co.nz/wp-content/uploads/2021/03/Labrador-Personality-and-Profile-1.jpg"
-                    }
+                    src={pet.photo}
                     alt={pet.name}
                     className="w-full h-full object-cover"
                   />
