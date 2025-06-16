@@ -261,6 +261,35 @@ const petsApi = {
   },
 
   createPet: async (data: PetFormData): Promise<Pet> => {
+    // If there's a photo and it's a base64 string, we need to handle it as a file upload
+    if (data.photo && typeof data.photo === 'string' && data.photo.startsWith('data:image')) {
+      const formData = new FormData();
+      
+      // Add all fields to formData
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== 'photo' && value !== undefined) {
+          formData.append(key, String(value));
+        }
+      });
+      
+      // Convert base64 to blob and append as file
+      const base64Response = await fetch(data.photo);
+      const blob = await base64Response.blob();
+      const file = new File([blob], 'pet-photo.jpg', { type: 'image/jpeg' });
+      formData.append('photo', file);
+      
+      // Update headers for multipart/form-data
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+      
+      const response = await api.post("/pets", formData, config);
+      return response.data;
+    }
+    
+    // For non-photo creates, proceed normally
     const response = await api.post("/pets", data);
     return response.data;
   },
@@ -414,7 +443,37 @@ const petsApi = {
    * @param petData The updated pet data
    * @returns Promise with the updated pet
    */
-  updatePet(petId: number, petData: Partial<Pet>): Promise<Pet> {
+  async updatePet(petId: number, petData: Partial<Pet>): Promise<Pet> {
+    // If there's a photo and it's a base64 string, we need to handle it as a file upload
+    if (petData.photo && typeof petData.photo === 'string' && petData.photo.startsWith('data:image')) {
+      const formData = new FormData();
+      
+      // Add all fields to formData
+      Object.entries(petData).forEach(([key, value]) => {
+        if (key !== 'photo' && value !== undefined) {
+          formData.append(key, String(value));
+        }
+      });
+      
+      // Convert base64 to blob and append as file
+      const base64Response = await fetch(petData.photo);
+      const blob = await base64Response.blob();
+      const file = new File([blob], 'pet-photo.jpg', { type: 'image/jpeg' });
+      formData.append('photo', file);
+      
+      // Update headers for multipart/form-data
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+      
+      return api
+        .post<{ data: Pet }>(`/pets/${petId}?_method=PUT`, formData, config)
+        .then((response) => response.data.data);
+    }
+    
+    // For non-photo updates, proceed normally
     return api
       .put<{ data: Pet }>(`/pets/${petId}`, petData)
       .then((response) => response.data.data);

@@ -17,12 +17,29 @@ export const PetAvatar = ({
     lg: 'w-32 h-32',
   };
 
+  // Check if the photoUrl is a base64 data URL or a regular URL
+  const getImageUrl = (url: string | undefined) => {
+    if (!url) return '';
+    
+    // If it's a base64 data URL or starts with http, use it as is
+    if (url.startsWith('data:image') || url.startsWith('http') || url.startsWith('/storage')) {
+      return url;
+    }
+    
+    // If it's a temporary path, try to construct a full URL
+    // This assumes your API is hosted at the same origin as your frontend
+    // If not, you'll need to use the full API URL from your environment variables
+    return `${import.meta.env.VITE_API_URL || ''}${url}`;
+  };
+
+  const imageUrl = getImageUrl(photoUrl);
+
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
-      {photoUrl ? (
+      {imageUrl ? (
         <div 
           className="w-full h-full rounded-full bg-cover bg-center border-4 border-white shadow-md"
-          style={{ backgroundImage: `url(${photoUrl})` }}
+          style={{ backgroundImage: `url(${imageUrl})` }}
           aria-label={`${name}'s profile picture`}
         />
       ) : (

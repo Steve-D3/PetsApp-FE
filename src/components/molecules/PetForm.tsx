@@ -1,8 +1,9 @@
 import { useForm } from "react-hook-form";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/atoms/Input";
 import { Select } from "@/components/atoms/Select";
 import { Textarea } from "@/components/atoms/Textarea";
+import { FileInput } from "@/components/atoms/FileInput";
 import type { PetFormData } from "@/features/pets/types";
 import { Button } from "../atoms/Button";
 
@@ -20,25 +21,56 @@ export function PetForm({
   isLoading = false,
   initialData = {},
 }: PetFormProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    initialData.photo || null
+  );
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<PetFormData>();
+    setValue,
+  } = useForm<PetFormData>({
+    defaultValues: initialData,
+  });
 
-  const previousInitialData = useRef<Partial<PetFormData> | undefined>(undefined);
+  const previousInitialData = useRef<Partial<PetFormData> | undefined>(
+    undefined
+  );
 
   // Reset form when initialData changes
   useEffect(() => {
     // Only reset if initialData exists and is different from previous
-    if (initialData && JSON.stringify(initialData) !== JSON.stringify(previousInitialData.current)) {
+    if (
+      initialData &&
+      JSON.stringify(initialData) !==
+        JSON.stringify(previousInitialData.current)
+    ) {
       reset(initialData, {
-        keepDefaultValues: true
+        keepDefaultValues: true,
       });
       previousInitialData.current = initialData;
     }
   }, [reset, initialData]);
+
+  const handleFileChange = (file: File | null) => {
+    setSelectedFile(file);
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setPreviewUrl(base64String);
+        setValue("photo", base64String, { shouldValidate: true });
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setPreviewUrl(null);
+      setValue("photo", "", { shouldValidate: true });
+    }
+  };
 
   const handleFormSubmit = (data: PetFormData) => {
     // Prepare the form data with proper types
@@ -51,12 +83,36 @@ export function PetForm({
       name: data.name.trim(),
       species: data.species.trim(),
       gender: data.gender as "Male" | "Female",
+      // Include the photo from preview URL if no new file was selected
+      photo: previewUrl || data.photo,
     };
+
+    // If there's a selected file, we should handle the file upload here
+    // and then call onSubmit with the response URL
+    if (selectedFile) {
+      // In a real app, you would upload the file to your server here
+      // and get back a URL, then include that URL in the form data
+      // For now, we're just using the base64 data URL
+      formData.photo = previewUrl || "";
+    }
+
     onSubmit(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {/* Photo Upload */}
+      <div className="space-y-4">
+        <FileInput
+          label="Pet Photo"
+          id="pet-photo"
+          onFileSelect={handleFileChange}
+          previewUrl={previewUrl}
+          inputSize="lg"
+          className="flex flex-col items-center"
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           label="Pet Name *"

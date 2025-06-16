@@ -406,13 +406,22 @@ const ProfilePage = () => {
         sterilized: formData.sterilized ? 1 : 0,
         allergies: formData.allergies,
         food_preferences: formData.food_preferences,
+        photo: formData.photo, // Include the photo field
       };
 
       // Call the API to update the pet
       const updatedPet = await petsApi.updatePet(pet.id, updateData);
 
+      // Ensure the photo URL is properly set
+      const updatedPetWithPhoto = {
+        ...updatedPet,
+        // If we have a new photo in the form data, use that instead of the API response
+        // as the API might return a temporary path
+        photo: formData.photo || updatedPet.photo
+      };
+
       // Update the local state with the new data
-      setPet(updatedPet);
+      setPet(updatedPetWithPhoto);
 
       // Close the edit modal
       setIsEditModalOpen(false);
