@@ -48,7 +48,7 @@ export function EditPetModal({
         ? parseFloat(pet.weight) || 0
         : 0,
     microchip_number: pet.microchip_number,
-    sterilized: Boolean(pet.sterilized),
+    sterilized: pet.sterilized ?? 0, // Default to 0 if undefined
     allergies: pet.allergies,
     food_preferences: pet.food_preferences,
     photo: pet.photo,

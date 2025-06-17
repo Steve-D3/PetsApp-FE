@@ -1,6 +1,28 @@
 import axios from "axios";
 import { authApi } from "../../../features/auth/api/authApi";
+// CSRF token handling is now managed by the Axios interceptor in authApi.ts
 import type { PetFormData } from "../types";
+
+// Helper function to convert File to base64 string
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (!(file instanceof File)) {
+      reject(new Error('Invalid file provided'));
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to read file as base64'));
+      }
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 // Types
 export interface MedicalRecord {
@@ -172,13 +194,15 @@ export interface Pet {
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_URL ||
-    "https://petdashboard-app-sdkgp.ondigitalocean.app/api",
+  baseURL: import.meta.env.VITE_API_URL || "https://test-backend.ddev.site/api",
   headers: {
     "Content-Type": "application/json",
-    Accept: "application/json",
+    "Accept": "application/json",
+    "X-Requested-With": "XMLHttpRequest"
   },
+  withCredentials: true, // Important for CORS with credentials
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 // Add request interceptor to include auth token
@@ -261,37 +285,69 @@ const petsApi = {
   },
 
   createPet: async (data: PetFormData): Promise<Pet> => {
-    // If there's a photo and it's a base64 string, we need to handle it as a file upload
-    if (data.photo && typeof data.photo === 'string' && data.photo.startsWith('data:image')) {
-      const formData = new FormData();
+    try {
+      // Create a copy of the data to modify
+      const requestData: Record<string, unknown> = { ...data };
       
-      // Add all fields to formData
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'photo' && value !== undefined) {
-          formData.append(key, String(value));
+      // Handle photo conversion if it exists
+      if (data.photo !== undefined) {
+        if ((data.photo as unknown) instanceof File) {
+          // Convert File to base64
+          try {
+            requestData.photo = await fileToBase64(data.photo as unknown as File);
+          } catch (error) {
+            console.error('Error converting file to base64:', error);
+            throw new Error('Failed to process the image');
+          }
+        } else if (data.photo === null || data.photo === '') {
+          // Explicitly set photo to null if it's an empty string or null
+          requestData.photo = null;
+        } else if (typeof data.photo === 'string' && !data.photo.startsWith('data:image')) {
+          // If it's a string but not a base64 image, remove it
+          delete requestData.photo;
         }
+        // If it's already a base64 string, keep it as is
+      } else {
+        // If photo is not provided, remove it from the request
+        delete requestData.photo;
+      }
+      
+      // Convert sterilized from boolean to number if needed
+      if ('sterilized' in requestData) {
+        requestData.sterilized = requestData.sterilized ? 1 : 0;
+      }
+      
+      // Log the request data for debugging (without the actual base64 data)
+      console.log('Sending create request with data:', {
+        ...requestData,
+        photo: requestData.photo ? '[base64 image data]' : null
       });
       
-      // Convert base64 to blob and append as file
-      const base64Response = await fetch(data.photo);
-      const blob = await base64Response.blob();
-      const file = new File([blob], 'pet-photo.jpg', { type: 'image/jpeg' });
-      formData.append('photo', file);
+      // CSRF token handling is now managed by the Axios interceptor in authApi.ts
       
-      // Update headers for multipart/form-data
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
+      // Send the POST request to create a new pet
+      const response = await api.post(
+        '/pets',
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          }
+        }
+      );
       
-      const response = await api.post("/pets", formData, config);
       return response.data;
+    } catch (error) {
+      console.error('Error in createPet:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Response data:', error.response?.data);
+        console.error('Response status:', error.response?.status);
+        console.error('Response headers:', error.response?.headers);
+      }
+      throw error;
     }
-    
-    // For non-photo creates, proceed normally
-    const response = await api.post("/pets", data);
-    return response.data;
   },
 
   getPetAppointments: async (petId: number): Promise<Appointment[]> => {
@@ -444,39 +500,69 @@ const petsApi = {
    * @returns Promise with the updated pet
    */
   async updatePet(petId: number, petData: Partial<Pet>): Promise<Pet> {
-    // If there's a photo and it's a base64 string, we need to handle it as a file upload
-    if (petData.photo && typeof petData.photo === 'string' && petData.photo.startsWith('data:image')) {
-      const formData = new FormData();
+    try {
+      // Create a copy of the data to modify
+      const requestData: Record<string, unknown> = { ...petData };
       
-      // Add all fields to formData
-      Object.entries(petData).forEach(([key, value]) => {
-        if (key !== 'photo' && value !== undefined) {
-          formData.append(key, String(value));
+      // Handle photo conversion if it exists
+      if (petData.photo !== undefined) {
+        if ((petData.photo as unknown) instanceof File) {
+          // Convert File to base64
+          try {
+            requestData.photo = await fileToBase64(petData.photo as unknown as File);
+          } catch (error) {
+            console.error('Error converting file to base64:', error);
+            throw new Error('Failed to process the image');
+          }
+        } else if (petData.photo === null || petData.photo === '') {
+          // Explicitly set photo to null if it's an empty string or null
+          requestData.photo = null;
+        } else if (typeof petData.photo === 'string' && !petData.photo.startsWith('data:image')) {
+          // If it's a string but not a base64 image, remove it
+          delete requestData.photo;
         }
+        // If it's already a base64 string, keep it as is
+      } else {
+        // If photo is not provided, remove it from the request
+        delete requestData.photo;
+      }
+      
+      // Convert sterilized from boolean to number if needed
+      if ('sterilized' in requestData) {
+        requestData.sterilized = requestData.sterilized ? 1 : 0;
+      }
+      
+      // Log the request data for debugging (without the actual base64 data)
+      console.log('Sending update request with data:', {
+        ...requestData,
+        photo: requestData.photo ? '[base64 image data]' : null
       });
       
-      // Convert base64 to blob and append as file
-      const base64Response = await fetch(petData.photo);
-      const blob = await base64Response.blob();
-      const file = new File([blob], 'pet-photo.jpg', { type: 'image/jpeg' });
-      formData.append('photo', file);
+      // CSRF token handling is now managed by the Axios interceptor in authApi.ts
       
-      // Update headers for multipart/form-data
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
+      // Send the PUT request directly to the API endpoint
+      const response = await api.put(
+        `/pets/${petId}`,
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          }
+        }
+      );
       
-      return api
-        .post<{ data: Pet }>(`/pets/${petId}?_method=PUT`, formData, config)
-        .then((response) => response.data.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error in updatePet:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Response data:', error.response?.data);
+        console.error('Response status:', error.response?.status);
+        console.error('Response headers:', error.response?.headers);
+      }
+      throw error;
     }
-    
-    // For non-photo updates, proceed normally
-    return api
-      .put<{ data: Pet }>(`/pets/${petId}`, petData)
-      .then((response) => response.data.data);
   },
 
   /**
@@ -526,12 +612,33 @@ const petsApi = {
    * @param petId The ID of the pet
    * @returns Promise with array of medical records
    */
-  getMedicalRecords(petId: string | number): Promise<MedicalRecord[]> {
-    return api
-      .get<MedicalRecord[]>("/medical-records", {
+  async getMedicalRecords(petId: string | number): Promise<MedicalRecord[]> {
+    try {
+      console.log(`Fetching medical records for pet ID: ${petId}`);
+      const response = await api.get<MedicalRecord[]>("/medical-records", {
         params: { pet_id: petId },
-      })
-      .then((response) => response.data);
+        timeout: 10000, // 10 second timeout
+      });
+      console.log(`Successfully fetched ${response.data.length} medical records`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching medical records for pet ${petId}:`, error);
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Request timed out while fetching medical records');
+        } else if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          throw new Error(
+            `Failed to fetch medical records: ${error.response.status} ${error.response.statusText}`
+          );
+        } else if (error.request) {
+          // The request was made but no response was received
+          throw new Error('No response received from the server');
+        }
+      }
+      throw error;
+    }
   },
 };
 

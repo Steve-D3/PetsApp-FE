@@ -1,5 +1,6 @@
 import axios, { type AxiosError } from "axios";
 import type { AxiosResponse } from "axios";
+import { getCookie } from "../../../utils/cookieUtils";
 
 // Types
 interface UserData {
@@ -59,17 +60,55 @@ const api = axios.create({
     "https://petdashboard-app-sdkgp.ondigitalocean.app/api",
   headers: {
     "Content-Type": "application/json",
-    Accept: "application/json",
+    "Accept": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
+  withCredentials: true, // Important for CORS with credentials
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
+
+// Import cookie utils
+// The getCookie function is already imported at the top of the file
 
 // Request interceptor to add auth token to requests
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Add auth token if it exists
     const token = localStorage.getItem("token");
     if (token) {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // For non-GET requests, ensure we have a CSRF token
+    if (config.method && config.method.toLowerCase() !== 'get') {
+      // Check if we're in a browser environment
+      if (typeof window !== 'undefined') {
+        let csrfToken = getCookie('XSRF-TOKEN');
+        
+        // If we don't have a CSRF token, try to get one
+        if (!csrfToken) {
+          try {
+            // Get the base URL without the /api suffix for CSRF endpoint
+            const baseUrl = (import.meta.env.VITE_API_URL || 'https://test-backend.ddev.site').replace(/\/api$/, '');
+            await axios.get(`${baseUrl}/sanctum/csrf-cookie`, { 
+              withCredentials: true 
+            });
+            csrfToken = getCookie('XSRF-TOKEN');
+          } catch (error) {
+            console.warn('Could not fetch CSRF token, proceeding anyway', error);
+          }
+        }
+        
+        // Set the CSRF token in the headers if we have one
+        if (csrfToken) {
+          config.headers = config.headers || {};
+          (config.headers as Record<string, string>)['X-XSRF-TOKEN'] = csrfToken;
+        }
+      }
+    }
+    
     return config;
   },
   (error) => {

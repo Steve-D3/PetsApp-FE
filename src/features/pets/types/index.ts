@@ -3,15 +3,18 @@ import type { ReactNode } from "react";
 // Base Pet type
 export interface Pet {
   id: number;
+  user_id?: number;
   name: string;
-  species?: string;
+  species: string;
   breed?: string;
-  gender?: string;
+  gender: 'Male' | 'Female';
   birth_date?: string;
-  weight?: string | number;
+  weight?: number;
+  microchip_number?: string;
+  sterilized?: number; // 0 or 1 to match the backend
   food_preferences?: string;
   allergies?: string;
-  photo?: string;
+  photo?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -70,13 +73,13 @@ export interface PetFormData {
   species: string;
   breed?: string;
   gender: "Male" | "Female";
-  birth_date?: string; // Format: YYYY-MM-DD
+  birth_date?: string;
   weight?: number;
   microchip_number?: string;
-  sterilized?: boolean;
+  sterilized?: number; // 0 or 1 to match the backend
   allergies?: string;
   food_preferences?: string;
-  photo?: string;
+  photo?: string | File | null;
 }
 
 export interface MedicalRecord {

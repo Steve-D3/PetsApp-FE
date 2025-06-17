@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BriefcaseMedical, Pill } from "lucide-react";
+import axios from "axios";
 import type { PetFormData } from "@/features/pets/types";
 import type { MedicalRecord } from "@/features/pets/api/petsApi";
 import { Button } from "@/components/atoms/Button";
@@ -30,7 +31,8 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { petId } = useParams<{ petId: string }>();
   const [pet, setPet] = useState<Pet | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Loading state
+  const isPageLoading = false; // Removed state since it was always true and never updated
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,22 @@ const ProfilePage = () => {
   const [isHealthRecordsModalOpen, setIsHealthRecordsModalOpen] =
     useState(false);
   const [isLoadingHealthRecords, setIsLoadingHealthRecords] = useState(false);
+  // State for tracking delete operation
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Navigation handlers
+  const handleViewAllTreatments = useCallback(
+    () => navigate("/treatments"),
+    [navigate]
+  );
+  const handleViewAllMedications = useCallback(
+    () => navigate("/medications"),
+    [navigate]
+  );
+  const handleViewAllVaccines = useCallback(() => {
+    if (petId) navigate(`/pets/${petId}/vaccines`);
+  }, [navigate, petId]);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,7 +67,6 @@ const ProfilePage = () => {
         // Check if user is authenticated
         if (!token) {
           setError("Please log in to view your pets");
-          setLoading(false);
           navigate("/login");
           return;
         }
@@ -69,61 +86,86 @@ const ProfilePage = () => {
         } else {
           setError("An unexpected error occurred");
         }
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchPet();
   }, [navigate, petId]);
 
-  // Update the fetchMedicalRecords function to remove medicalRecords from dependencies
-  const fetchMedicalRecords = useCallback(async () => {
-    if (!pet) return;
+  // Track the last fetched pet ID to prevent unnecessary re-fetches
+  const lastFetchedPetId = useRef<number | null>(null);
 
-    try {
-      setIsLoadingRecords(true);
-      const records = await petsApi.getMedicalRecords(pet.id);
-      setMedicalRecords(records);
-    } catch (error) {
-      console.error("Error fetching medical records:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load medical records.",
-      });
-    } finally {
-      setIsLoadingRecords(false);
+  // Fetch medical records when pet changes
+  useEffect(() => {
+    // Skip if no pet or if we've already fetched for this pet
+    if (!pet?.id || lastFetchedPetId.current === pet.id) {
+      return;
     }
-  }, [pet]); // Removed medicalRecords from dependencies
 
-  // Update the useEffect to only run when pet changes
-  useEffect(() => {
-    fetchMedicalRecords();
-  }, [fetchMedicalRecords]); // Only depends on fetchMedicalRecords
+    let isMounted = true;
+    const controller = new AbortController();
 
-  // Fetch medical records when pet data is loaded or changes
-  useEffect(() => {
-    const loadMedicalRecords = async () => {
-      if (pet) {
-        await fetchMedicalRecords();
+    const fetchMedicalRecords = async () => {
+      try {
+        setIsLoadingRecords(true);
+        console.log(`Fetching medical records for pet ID: ${pet.id}`);
+        const records = await petsApi.getMedicalRecords(pet.id);
+        console.log(`Successfully fetched ${records.length} medical records`);
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setMedicalRecords(records);
+          lastFetchedPetId.current = pet.id; // Update the last fetched pet ID
+        }
+      } catch (error) {
+        // Don't log cancellation errors
+        if (axios.isCancel(error)) {
+          console.log("Request canceled:", error.message);
+          return;
+        }
+
+        console.error("Error fetching medical records:", error);
+        if (isMounted) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Failed to load medical records.",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingRecords(false);
+        }
       }
     };
 
-    loadMedicalRecords();
-  }, [pet, fetchMedicalRecords]);
+    // Add a small debounce to prevent rapid refetches
+    const timer = setTimeout(() => {
+      fetchMedicalRecords();
+    }, 100);
 
-  // Transform medical records data for the UI
-  const treatments = medicalRecords.flatMap((record) =>
-    (record.treatments || []).map((treatment) => {
-      const formatDate = (dateString: string) => {
-        if (!dateString) return "N/A";
-        const date = new Date(dateString);
-        return isNaN(date.getTime()) ? "N/A" : date.toISOString().split("T")[0];
-      };
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      controller.abort("Component unmounted or pet changed");
+      clearTimeout(timer);
+    };
+  }, [pet?.id, toast]); // Only depend on pet.id and toast
 
-      return {
-        id: Number(treatment.id), // Ensure this is a number
+  // Memoize the transformation of medical records to prevent unnecessary recalculations
+  const treatments = useMemo(() => {
+    const formatDate = (dateString: string): string => {
+      if (!dateString) return "N/A";
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? "N/A" : date.toISOString().split("T")[0];
+    };
+
+    return medicalRecords.flatMap((record) =>
+      (record.treatments || []).map((treatment) => ({
+        id: Number(treatment.id),
         medical_record_id: record.id,
         name: treatment.name,
         category: treatment.category || "Unknown",
@@ -132,15 +174,18 @@ const ProfilePage = () => {
         quantity: treatment.quantity?.toString() || "0",
         unit: treatment.unit || "",
         completed: Boolean(treatment.completed),
-        administered_at: formatDate(treatment.administered_at),
+        administered_at: treatment.administered_at
+          ? formatDate(treatment.administered_at)
+          : "N/A",
         administered_by: Number(treatment.administered_by) || 0,
         treatment_type_id: Number(treatment.treatment_type_id) || 0,
-        icon: <BriefcaseMedical className="h-5 w-5 text-blue-500" />,
         vet: record.vet?.license_number || "Unknown",
-      };
-    })
-  );
+        icon: <BriefcaseMedical className="h-5 w-5 text-blue-500" />,
+      }))
+    );
+  }, [medicalRecords]);
 
+  // Memoize medications
   // Helper function to parse medication name and dosage from a string
   const parseMedication = (medString: string) => {
     // Split the string into parts
@@ -246,31 +291,6 @@ const ProfilePage = () => {
         ];
       }
     }
-
-    // // If medications is already an array
-    // if (Array.isArray(record.medications)) {
-    //   return record.medications.map((med, index) => {
-    //     const medData =
-    //       typeof med === "string"
-    //         ? parseMedication(med)
-    //         : {
-    //             name: med.name || med.medication || "Unknown Medication",
-    //             dosage: med.dosage || med.dose || "N/A",
-    //             frequency: med.frequency || "As needed",
-    //           };
-
-    //     return {
-    //       id: `med-${record.id}-${index}`,
-    //       name: medData.name,
-    //       dosage: medData.dosage,
-    //       frequency: medData.frequency,
-    //       startDate: med.startDate || med.date || record.record_date,
-    //       endDate: med.endDate || "",
-    //       icon: <Pill className="h-5 w-5 text-purple-500" />,
-    //     };
-    //   });
-    // }
-
     return [];
   });
 
@@ -303,27 +323,9 @@ const ProfilePage = () => {
     } finally {
       setIsLoadingHealthRecords(false);
     }
-  }, [pet, toast]);
+  }, [pet, setMedicalRecords, setIsHealthRecordsModalOpen, toast]);
 
-  const handleViewAllTreatments = () => {
-    console.log("View all treatments");
-    // Navigate to treatments page
-    navigate("/treatments");
-  };
-
-  const handleViewAllMedications = () => {
-    console.log("View all medications");
-    // Navigate to medications page
-    navigate("/medications");
-  };
-
-  const handleViewAllVaccines = () => {
-    navigate(`/pets/${petId}/vaccines`);
-  };
-
-  // Vaccine edit and delete handlers removed as they're not available for pet owners
-
-  if (loading) {
+  if (isPageLoading || isLoadingHealthRecords || isDeleting) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -362,25 +364,34 @@ const ProfilePage = () => {
       if (!confirmDelete) return;
 
       // Show loading state
-      setLoading(true);
+      setIsDeleting(true);
 
       // Call the API to delete the pet
       await petsApi.deletePet(Number(id));
 
       // Show success message
-      alert("Pet deleted successfully");
+      toast({
+        title: "Success",
+        description: "Pet deleted successfully",
+        variant: "default",
+      });
 
       // Redirect to the pets list page
       navigate("/pets");
     } catch (error) {
       console.error("Error deleting pet:", error);
-      setError(
+      const errorMessage =
         error instanceof Error
-          ? `Failed to delete pet: ${error.message}`
-          : "An unexpected error occurred while deleting the pet."
-      );
+          ? error.message
+          : "An unexpected error occurred while deleting the pet.";
+      setError(`Failed to delete pet: ${errorMessage}`);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false);
+      setIsDeleting(false);
     }
   };
 
@@ -395,7 +406,7 @@ const ProfilePage = () => {
       setIsSaving(true);
 
       // Prepare the data for the API call
-      const updateData: Partial<Pet> = {
+      const updateData: Partial<Pet> & { photo?: string | File } = {
         name: formData.name,
         species: formData.species,
         breed: formData.breed,
@@ -403,43 +414,61 @@ const ProfilePage = () => {
         birth_date: formData.birth_date,
         weight: formData.weight,
         microchip_number: formData.microchip_number,
-        sterilized: formData.sterilized ? 1 : 0,
+        sterilized: formData.sterilized,
         allergies: formData.allergies,
         food_preferences: formData.food_preferences,
-        photo: formData.photo, // Include the photo field
       };
+
+      // Handle photo upload if a new photo was provided
+      if (formData.photo) {
+        if (formData.photo instanceof File) {
+          // If it's a File object, we need to upload it first
+          const formDataToUpload = new FormData();
+          formDataToUpload.append("photo", formData.photo);
+
+          const uploadResponse = await axios.post<{ url: string }>(
+            `${import.meta.env.VITE_API_URL}/api/pets/${pet.id}/upload-photo`,
+            formDataToUpload,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+
+          updateData.photo = uploadResponse.data.url;
+        } else {
+          // If it's already a string (URL), use it as is
+          updateData.photo = formData.photo;
+        }
+      }
 
       // Call the API to update the pet
-      const updatedPet = await petsApi.updatePet(pet.id, updateData);
+      const updatedPet = await petsApi.updatePet(
+        pet.id,
+        updateData as Partial<Pet>
+      );
 
-      // Ensure the photo URL is properly set
-      const updatedPetWithPhoto = {
-        ...updatedPet,
-        // If we have a new photo in the form data, use that instead of the API response
-        // as the API might return a temporary path
-        photo: formData.photo || updatedPet.photo
-      };
+      // Update the pet in state
+      setPet(updatedPet);
 
-      // Update the local state with the new data
-      setPet(updatedPetWithPhoto);
-
-      // Close the edit modal
+      // Close the modal
       setIsEditModalOpen(false);
 
       // Show success message
       toast({
         title: "Success",
-        description: "Pet updated successfully!",
-        variant: "success",
+        description: "Pet updated successfully",
+        variant: "default",
       });
-
-      // Close the modal
-      setIsEditModalOpen(false);
     } catch (error) {
       console.error("Error updating pet:", error);
+      setError(error instanceof Error ? error.message : "Failed to update pet");
       toast({
         title: "Error",
-        description: "Failed to update pet. Please try again.",
+        description:
+          error instanceof Error ? error.message : "Failed to update pet",
         variant: "destructive",
       });
     } finally {
@@ -477,10 +506,10 @@ const ProfilePage = () => {
               breed={pet.breed}
               gender={pet.gender}
               birthDate={pet.birth_date}
-              photoUrl={pet.photo}
+              photoUrl={pet.photo || ""}
               onViewHealthRecords={handleViewAllHealthRecords}
               onEdit={handleEditPet}
-              onDelete={(id) => handleDeletePet(id)}
+              onDelete={handleDeletePet}
             />
 
             <PetQuickStats

@@ -22,8 +22,9 @@ export function PetForm({
   initialData = {},
 }: PetFormProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // Handle both string URLs and File objects for the preview
   const [previewUrl, setPreviewUrl] = useState<string | null>(
-    initialData.photo || null
+    typeof initialData.photo === 'string' ? initialData.photo : null
   );
 
   const {
@@ -32,9 +33,16 @@ export function PetForm({
     formState: { errors },
     reset,
     setValue,
+    watch,
   } = useForm<PetFormData>({
-    defaultValues: initialData,
+    defaultValues: {
+      ...initialData,
+      sterilized: initialData.sterilized ?? 0, // Ensure it's a number (0 or 1)
+    },
   });
+
+  // Watch the sterilized field to handle UI updates
+  const sterilizedValue = watch('sterilized');
 
   const previousInitialData = useRef<Partial<PetFormData> | undefined>(
     undefined
@@ -63,12 +71,14 @@ export function PetForm({
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setPreviewUrl(base64String);
+        // Set the photo field with the base64 string
         setValue("photo", base64String, { shouldValidate: true });
       };
       reader.readAsDataURL(file);
     } else {
       setPreviewUrl(null);
-      setValue("photo", "", { shouldValidate: true });
+      // When clearing the file, set photo to null or empty string based on your API requirements
+      setValue("photo", null, { shouldValidate: true });
     }
   };
 
@@ -84,7 +94,9 @@ export function PetForm({
       species: data.species.trim(),
       gender: data.gender as "Male" | "Female",
       // Include the photo from preview URL if no new file was selected
-      photo: previewUrl || data.photo,
+      // Ensure we only include the photo if it's a string (URL or base64)
+      photo: typeof previewUrl === 'string' ? previewUrl : 
+             typeof data.photo === 'string' ? data.photo : null,
     };
 
     // If there's a selected file, we should handle the file upload here
@@ -172,7 +184,8 @@ export function PetForm({
           <input
             type="checkbox"
             id="sterilized"
-            {...register("sterilized")}
+            checked={!!sterilizedValue}
+            onChange={(e) => setValue('sterilized', e.target.checked ? 1 : 0, { shouldDirty: true })}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <label htmlFor="sterilized" className="text-sm text-gray-700">

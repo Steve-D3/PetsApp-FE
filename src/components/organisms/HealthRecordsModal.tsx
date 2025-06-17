@@ -41,13 +41,8 @@ export const HealthRecordsModal = ({
     }
   }, [isOpen]);
   
-  // Don't render anything until we know the initial state
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    isFirstRender.current = false;
-  }, []);
-  
-  if (isFirstRender.current) return null;
+  // Don't render anything if not open and not mounted
+  if (!isOpen && !isMounted) return null;
 
   const handleClose = () => {
     setIsMounted(false);
