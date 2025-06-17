@@ -14,27 +14,8 @@ interface UserData {
   profile_photo_url: string;
 }
 
-interface ApiResponse<T> {
-  data: T;
-  status: number;
-  statusText: string;
-  headers: Record<string, string>;
-  config: {
-    headers: {
-      [key: string]: string;
-    };
-    [key: string]: unknown;
-  };
-  request: object;
-}
-
-interface AuthResponse extends ApiResponse<UserData> {
-  token: string;
-}
-
-// Auth response types
-type LoginResponse = AuthResponse;
-type RegisterResponse = AuthResponse;
+// Response types are now handled inline with the API methods
+// Token is now included in the response directly from the API
 
 interface LoginCredentials {
   email: string;
@@ -148,31 +129,24 @@ export const authApi = {
    * @param credentials User login credentials
    * @returns Promise with user data and auth token
    */
-  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+  async login(credentials: LoginCredentials): Promise<{ user: UserData; token: string }> {
     try {
-      const response = await api.post("/login", credentials);
+      type LoginApiResponse = {
+        access_token: string;
+        token_type: string;
+        user: UserData;
+      };
+
+      const response = await api.post<LoginApiResponse>("/login", credentials);
       
       // Log the response for debugging
       console.log('Login response:', response.data);
       
       // Extract token and user data from the response
-      const responseData = response.data as {
-        access_token: string;
-        token_type: string;
-        user: UserData;
-      };
+      const { access_token: token, user } = response.data;
       
-      const token = responseData.access_token;
-      const userData = responseData.user;
-      
-      if (!token) {
-        console.error('No access_token in response:', response.data);
-        throw new Error("No access token received from server");
-      }
-      
-      if (!userData) {
-        console.error('No user data in response:', response.data);
-        throw new Error("No user data received from server");
+      if (!token || !user) {
+        throw new Error("No token or user data received from server");
       }
       
       // Store the token in localStorage
@@ -181,14 +155,9 @@ export const authApi = {
       // Set the default Authorization header
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       
-      // Store user data in localStorage
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Return the response in the expected format
       return {
-        ...response.data,
-        data: userData,
-        token: token
+        user,
+        token
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -216,22 +185,24 @@ export const authApi = {
    * @param userData User registration data
    * @returns Promise with the created user data
    */
-  async register(userData: RegisterData): Promise<RegisterResponse> {
+  async register(userData: RegisterData): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await api.post<RegisterResponse>("/register", userData);
-      const { token } = response.data;
+      type RegisterApiResponse = {
+        message: string;
+        user: UserData;
+      };
       
-      if (!token) {
-        throw new Error("No token received from server");
+      const response = await api.post<RegisterApiResponse>("/register", userData);
+      
+      if (!response.data.user) {
+        console.error('User data not found in response:', response.data);
+        throw new Error("Registration successful, but there was an issue with the response.");
       }
       
-      // Store the token in localStorage
-      localStorage.setItem("token", token);
-      
-      // Set the default Authorization header
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      
-      return response.data;
+      return {
+        success: true,
+        message: response.data.message || 'Registration successful! Please log in with your credentials.'
+      };
     } catch (error) {
       console.error("Registration API error:", error);
 
@@ -323,6 +294,24 @@ export const authApi = {
         localStorage.removeItem("token");
       }
       return false;
+    }
+  },
+
+  /**
+   * Sends a password reset link to the provided email
+   * @param data Object containing the user's email
+   * @returns Promise that resolves when the request is complete
+   */
+  async forgotPassword(data: { email: string }): Promise<void> {
+    try {
+      // This endpoint should be implemented in your backend
+      await api.post('/forgot-password', data);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.message || 'Failed to send password reset email';
+        throw new Error(errorMessage);
+      }
+      throw new Error('An unexpected error occurred');
     }
   },
 };

@@ -235,9 +235,6 @@ const petsApi = {
         throw new Error("No authentication token found. Please log in.");
       }
 
-      // Set the authorization header
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
       // Get the current user to ensure we're authenticated and get the correct user ID
       const user = await authApi.getCurrentUser();
       if (!user) {
@@ -252,13 +249,38 @@ const petsApi = {
         throw new Error("No user ID found in the user object");
       }
 
-      console.log("Using user ID:", userId);
-      console.log("Making API request to fetch pets...");
-
-      // Make the API request with the user ID from the authenticated user
-      const response = await api.get<Pet[]>(`/pets?user_id=${userId}`);
-      console.log("Pets API response:", response);
-      return response.data;
+      console.log("Fetching pets for user ID:", userId);
+      
+      // Make the API request with the authorization header and user ID
+      const response = await api.get<Pet[]>("/pets", {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        params: {
+          owner_id: userId,
+          // Add a timestamp to prevent caching
+          _t: Date.now()
+        }
+      });
+      
+      // Log the response for debugging
+      console.log("Pets API response:", {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        requestUrl: response.config.url,
+        params: response.config.params
+      });
+      
+      // Ensure we only return pets that belong to the current user
+      const userPets = response.data.filter(pet => 
+        pet.owner && String(pet.owner.id) === String(userId)
+      );
+      
+      console.log(`Filtered ${userPets.length} out of ${response.data.length} pets for user ${userId}`);
+      return userPets;
     } catch (error) {
       console.error("Error in getUserPets:", error);
       // If the error is about token parsing, clear the invalid token

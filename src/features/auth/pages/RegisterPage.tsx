@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
-import useAuth from '../hooks/useAuth';
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import useAuth from "../hooks/useAuth";
 
 type RegisterForm = {
   name: string;
@@ -12,69 +12,112 @@ type RegisterForm = {
 
 export const RegisterPage = () => {
   const [formData, setFormData] = useState<RegisterForm>({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for registration success message from navigation state
+  useEffect(() => {
+    const state = location.state as {
+      registrationSuccess?: boolean;
+      message?: string;
+    };
+    if (state?.registrationSuccess && state.message) {
+      toast.success(state.message, {
+        duration: 5000, // Show for 5 seconds
+        position: "top-center",
+        icon: "👋",
+        style: {
+          background: "#4CAF50",
+          color: "#fff",
+          padding: "16px",
+          borderRadius: "8px",
+          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          fontSize: "1.05rem",
+          minWidth: "300px",
+        },
+      });
+      // Clear the state to avoid showing the message again on refresh
+      window.history.replaceState({}, "");
+    }
+  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      toast.error('Please fill in all fields');
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      toast.error("Please fill in all fields");
       return;
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords don't match!");
       return;
     }
 
     if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      console.log('Submitting registration with:', {
+      console.log("Submitting registration with:", {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        password_confirmation: formData.confirmPassword
+        password_confirmation: formData.confirmPassword,
       });
-      
+
+      // Show loading toast
+      const loadingToast = toast.loading("Creating your account...");
+
+      // The auth.register function will handle the navigation to login page
       await auth.register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        password_confirmation: formData.confirmPassword
+        password_confirmation: formData.confirmPassword,
       });
-      
-      toast.success('Registration successful! Please log in.');
-      // Use a timeout to ensure the toast is visible before navigation
-      setTimeout(() => {
-        navigate('/login');
-      }, 500);
+
+      // Dismiss loading toast (success toast will be shown after navigation)
+      toast.dismiss(loadingToast);
+
+      // Clear the form
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
     } catch (error) {
-      console.error('Registration error:', error);
-      let errorMessage = 'Registration failed';
-      
+      console.error("Registration error:", error);
+      let errorMessage = "Registration failed";
+
       if (error instanceof Error) {
         // Handle API validation errors
-        if (error.message.includes('422')) {
+        if (error.message.includes("422")) {
           try {
             // Try to extract JSON from the error message
             const jsonMatch = error.message.match(/\{.*\}/s);
             if (jsonMatch) {
               const errorData = JSON.parse(jsonMatch[0]);
-              errorMessage = Object.values(errorData.errors || {}).flat().join(' ') || error.message;
+              errorMessage =
+                Object.values(errorData.errors || {})
+                  .flat()
+                  .join(" ") || error.message;
             } else {
               errorMessage = error.message;
             }
@@ -86,7 +129,7 @@ export const RegisterPage = () => {
           errorMessage = error.message;
         }
       }
-      
+
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -95,7 +138,7 @@ export const RegisterPage = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -118,7 +161,7 @@ export const RegisterPage = () => {
             Create a new account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
+            Or{" "}
             <Link
               to="/login"
               className="font-medium text-blue-600 hover:text-blue-500"
@@ -201,20 +244,36 @@ export const RegisterPage = () => {
               disabled={isSubmitting}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
                 isSubmitting
-                  ? 'bg-blue-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
               } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
             >
               {isSubmitting ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Creating account...
                 </>
               ) : (
-                'Create account'
+                "Create account"
               )}
             </button>
           </div>

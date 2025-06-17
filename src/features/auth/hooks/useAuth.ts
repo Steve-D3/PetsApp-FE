@@ -13,7 +13,7 @@ export interface AuthContextType {
   ) => Promise<{ data: UserData; token: string }>;
   register: (
     userData: RegisterData
-  ) => Promise<{ data: UserData; token: string }>;
+  ) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<UserData | null>;
   setToken: (token: string) => void;
@@ -43,23 +43,9 @@ type RegisterData = {
   password_confirmation: string;
 };
 
-interface ApiResponse<T> {
-  data: T;
-  status: number;
-  statusText: string;
-  headers: Record<string, string>;
-  config: {
-    headers: {
-      [key: string]: string;
-    };
-    [key: string]: unknown;
-  };
-  request: object;
-}
+// ApiResponse interface has been removed as it's no longer needed
 
-interface AuthResponse extends ApiResponse<UserData> {
-  token: string;
-}
+// Token is now included in the response directly from authApi.register
 
 export const useAuth = (): AuthContextType => {
   const [user, setUser] = useState<UserData | null>(null);
@@ -136,35 +122,35 @@ export const useAuth = (): AuthContextType => {
   }, [checkAuth, setIsLoading]);
 
   const login = useCallback(
-    async (credentials: LoginCredentials): Promise<{ data: UserData; token: string }> => {
+    async (
+      credentials: LoginCredentials
+    ): Promise<{ data: UserData; token: string }> => {
       setIsLoading(true);
       setError(null);
 
       try {
-        console.log('Attempting to login with credentials:', credentials);
-        const response = await authApi.login(credentials);
-        console.log('Login response in useAuth:', response);
-        
-        // The response should have both user data and token
-        const userData = response.data || response;
-        const token = response.token;
+        console.log("Attempting to login with credentials:", credentials);
+        const { user: userData, token } = await authApi.login(credentials);
+        console.log("Login response in useAuth:", { userData, token });
 
         if (!userData || !token) {
-          throw new Error('Invalid response from server: missing user data or token');
+          throw new Error(
+            "Invalid response from server: missing user data or token"
+          );
         }
 
-        console.log('Setting user data:', userData);
-        console.log('Setting token:', token);
-        
+        console.log("Setting user data:", userData);
+        console.log("Setting token:", token);
+
         // Ensure the token is set in the auth state and localStorage
         setToken(token);
-        
+
         // Set the user data in the auth state
         setUser(userData);
         setIsAuthenticated(true);
-        
+
         // Store user data in localStorage (as a fallback)
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem("user", JSON.stringify(userData));
 
         // Redirect to dashboard after successful login
         navigate("/dashboard");
@@ -185,23 +171,34 @@ export const useAuth = (): AuthContextType => {
   );
 
   const register = useCallback(
-    async (registrationData: RegisterData): Promise<{ data: UserData; token: string }> => {
+    async (
+      registrationData: RegisterData
+    ): Promise<{ success: boolean; message: string }> => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const response: AuthResponse = await authApi.register(registrationData);
-        const userData = response.data;
-        const { token } = response;
+        const result = await authApi.register(registrationData);
 
-        setUser(userData);
-        setToken(token);
-        setIsAuthenticated(true);
+        // Show success message
+        setError(null);
 
-        // Redirect to dashboard after successful registration
-        navigate("/dashboard");
+        // Show success message and wait before redirecting
+        const redirectAfterMs = 5000; // Match the toast duration
 
-        return { data: userData, token };
+        // Use a promise to wait before redirecting
+        await new Promise((resolve) => setTimeout(resolve, redirectAfterMs));
+
+        // Redirect to login page after the delay
+        navigate("/login", {
+          state: {
+            registrationSuccess: true,
+            message: result.message,
+          },
+          replace: true,
+        });
+
+        return result;
       } catch (err) {
         const errorMessage = (err as Error).message || "Registration failed";
         setError(errorMessage);
@@ -210,7 +207,7 @@ export const useAuth = (): AuthContextType => {
         setIsLoading(false);
       }
     },
-    [navigate, setToken, setUser, setIsAuthenticated, setError, setIsLoading]
+    [navigate, setError, setIsLoading]
   );
 
   const logout = useCallback(async () => {
