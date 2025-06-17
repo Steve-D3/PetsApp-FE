@@ -25,7 +25,7 @@ export const usePet = () => {
       }
 
       const response = await petsApi.getPetById(Number(petId));
-      setPet(response);
+      setPet(response as Pet);
     } catch (err) {
       const error = err as Error;
       if (error.message.includes("No authentication token")) {
@@ -39,15 +39,21 @@ export const usePet = () => {
     }
   }, [petId, navigate]);
 
-  const updatePet = async (petData: Partial<Pet>) => {
+  const updatePet = async (petData: Pet) => {
     if (!petId) return null;
 
     try {
       setLoading(true);
       setError(null);
 
-      const updatedPet = await petsApi.updatePet(Number(petId), petData);
-      setPet(updatedPet);
+      // Create a new object without null values for the photo
+      const updateData = {
+        ...petData,
+        photo: petData.photo ?? undefined,
+      };
+
+      const updatedPet = await petsApi.updatePet(Number(petId), updateData);
+      setPet(updatedPet as Pet);
       return updatedPet;
     } catch (err) {
       const error = err as Error;

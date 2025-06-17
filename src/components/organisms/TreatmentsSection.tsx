@@ -129,7 +129,12 @@ export const TreatmentsSection = ({
             ))
           ) : (
             <div className="p-4 text-center text-gray-500">
-              No treatments found
+              <div className="flex flex-col items-center justify-center space-y-3">
+                <Stethoscope className="h-12 w-12 text-gray-300" />
+                <h4 className="text-gray-500 font-medium">
+                  No treatments found
+                </h4>
+              </div>
             </div>
           )}
         </div>

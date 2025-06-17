@@ -236,10 +236,6 @@ export const VaccinesSection = ({
                 <h4 className="text-gray-500 font-medium">
                   No vaccinations found
                 </h4>
-                <p className="text-sm text-gray-400 max-w-md">
-                  No vaccination records available. Add a new vaccination to get
-                  started.
-                </p>
               </div>
             </div>
           )}

@@ -91,7 +91,7 @@ export const validatePetForm = (data: Partial<Pet>) => {
     errors.species = "Species is required";
   }
 
-  if (data.weight !== undefined && data.weight !== "") {
+  if (data.weight != undefined && data.weight !== null) {
     const weightNum =
       typeof data.weight === "string" ? parseFloat(data.weight) : data.weight;
     if (isNaN(weightNum) || weightNum <= 0) {

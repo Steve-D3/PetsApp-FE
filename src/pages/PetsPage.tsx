@@ -156,12 +156,18 @@ const PetsPage = () => {
                 onClick={() => handlePetClick(pet.id)}
                 className="bg-white rounded-xl shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
               >
-                <div className="relative h-48 bg-gray-100">
-                  <img
-                    src={pet.photo}
-                    alt={pet.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative h-48 bg-gray-100 flex items-center justify-center">
+                  {pet.photo ? (
+                    <img
+                      src={pet.photo}
+                      alt={pet.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-6xl font-bold text-gray-400">
+                      {pet.name ? pet.name.charAt(0).toUpperCase() : ''}
+                    </span>
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="text-lg font-semibold text-gray-900">
