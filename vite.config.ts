@@ -11,6 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": "/src",
+      "@emotion/react": "@emotion/react",
+      "@emotion/styled": "@emotion/styled",
     },
   },
 });

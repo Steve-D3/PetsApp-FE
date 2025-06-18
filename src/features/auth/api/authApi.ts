@@ -41,12 +41,12 @@ const api = axios.create({
     "https://petdashboard-app-sdkgp.ondigitalocean.app/api",
   headers: {
     "Content-Type": "application/json",
-    "Accept": "application/json",
+    Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",
   },
   withCredentials: true, // Important for CORS with credentials
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
 });
 
 // Import cookie utils
@@ -61,35 +61,41 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // For non-GET requests, ensure we have a CSRF token
-    if (config.method && config.method.toLowerCase() !== 'get') {
+    if (config.method && config.method.toLowerCase() !== "get") {
       // Check if we're in a browser environment
-      if (typeof window !== 'undefined') {
-        let csrfToken = getCookie('XSRF-TOKEN');
-        
+      if (typeof window !== "undefined") {
+        let csrfToken = getCookie("XSRF-TOKEN");
+
         // If we don't have a CSRF token, try to get one
         if (!csrfToken) {
           try {
             // Get the base URL without the /api suffix for CSRF endpoint
-            const baseUrl = (import.meta.env.VITE_API_URL || 'https://test-backend.ddev.site').replace(/\/api$/, '');
-            await axios.get(`${baseUrl}/sanctum/csrf-cookie`, { 
-              withCredentials: true 
+            const baseUrl = (
+              import.meta.env.VITE_API_URL || "https://test-backend.ddev.site"
+            ).replace(/\/api$/, "");
+            await axios.get(`${baseUrl}/sanctum/csrf-cookie`, {
+              withCredentials: true,
             });
-            csrfToken = getCookie('XSRF-TOKEN');
+            csrfToken = getCookie("XSRF-TOKEN");
           } catch (error) {
-            console.warn('Could not fetch CSRF token, proceeding anyway', error);
+            console.warn(
+              "Could not fetch CSRF token, proceeding anyway",
+              error
+            );
           }
         }
-        
+
         // Set the CSRF token in the headers if we have one
         if (csrfToken) {
           config.headers = config.headers || {};
-          (config.headers as Record<string, string>)['X-XSRF-TOKEN'] = csrfToken;
+          (config.headers as Record<string, string>)["X-XSRF-TOKEN"] =
+            csrfToken;
         }
       }
     }
-    
+
     return config;
   },
   (error) => {
@@ -129,7 +135,9 @@ export const authApi = {
    * @param credentials User login credentials
    * @returns Promise with user data and auth token
    */
-  async login(credentials: LoginCredentials): Promise<{ user: UserData; token: string }> {
+  async login(
+    credentials: LoginCredentials
+  ): Promise<{ user: UserData; token: string }> {
     try {
       type LoginApiResponse = {
         access_token: string;
@@ -138,26 +146,26 @@ export const authApi = {
       };
 
       const response = await api.post<LoginApiResponse>("/login", credentials);
-      
+
       // Log the response for debugging
-      console.log('Login response:', response.data);
-      
+      console.log("Login response:", response.data);
+
       // Extract token and user data from the response
       const { access_token: token, user } = response.data;
-      
+
       if (!token || !user) {
         throw new Error("No token or user data received from server");
       }
-      
+
       // Store the token in localStorage
       localStorage.setItem("token", token);
-      
+
       // Set the default Authorization header
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      
+
       return {
         user,
-        token
+        token,
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -165,9 +173,7 @@ export const authApi = {
         if (axiosError.response) {
           // The request was made and the server responded with a status code
           // that falls out of the range of 2xx
-          throw new Error(
-            axiosError.response.data?.message || "Login failed"
-          );
+          throw new Error(axiosError.response.data?.message || "Login failed");
         } else if (axiosError.request) {
           // The request was made but no response was received
           throw new Error("No response received from server");
@@ -185,23 +191,32 @@ export const authApi = {
    * @param userData User registration data
    * @returns Promise with the created user data
    */
-  async register(userData: RegisterData): Promise<{ success: boolean; message: string }> {
+  async register(
+    userData: RegisterData
+  ): Promise<{ success: boolean; message: string }> {
     try {
       type RegisterApiResponse = {
         message: string;
         user: UserData;
       };
-      
-      const response = await api.post<RegisterApiResponse>("/register", userData);
-      
+
+      const response = await api.post<RegisterApiResponse>(
+        "/register",
+        userData
+      );
+
       if (!response.data.user) {
-        console.error('User data not found in response:', response.data);
-        throw new Error("Registration successful, but there was an issue with the response.");
+        console.error("User data not found in response:", response.data);
+        throw new Error(
+          "Registration successful, but there was an issue with the response."
+        );
       }
-      
+
       return {
         success: true,
-        message: response.data.message || 'Registration successful! Please log in with your credentials.'
+        message:
+          response.data.message ||
+          "Registration successful! Please log in with your credentials.",
       };
     } catch (error) {
       console.error("Registration API error:", error);
@@ -231,12 +246,38 @@ export const authApi = {
   },
 
   /**
+   * Resets a user's password
+   * @param data Reset password data
+   * @returns Promise with the reset password response
+   */
+  async resetPassword(data: {
+    token: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+  }) {
+    try {
+      const response = await api.post("/reset-password", data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage =
+          error.response?.data?.message ||
+          error.message ||
+          "Password reset failed";
+        throw new Error(errorMessage);
+      }
+      throw new Error("An unknown error occurred during password reset");
+    }
+  },
+
+  /**
    * Gets the currently authenticated user's data
    * @returns Promise with the current user's data
    */
   async getCurrentUser(): Promise<UserData> {
     // First try to get user data from localStorage
-    const userDataStr = localStorage.getItem('user');
+    const userDataStr = localStorage.getItem("user");
     if (userDataStr) {
       try {
         const userData = JSON.parse(userDataStr);
@@ -244,22 +285,22 @@ export const authApi = {
           return userData;
         }
       } catch (e) {
-        console.error('Error parsing user data from localStorage:', e);
+        console.error("Error parsing user data from localStorage:", e);
       }
     }
-    
+
     // If no user data in localStorage, try to fetch it from the API
     try {
       const response = await api.get<{ data: UserData }>("/me");
       if (response.data && response.data.data) {
         // Cache the user data in localStorage
-        localStorage.setItem('user', JSON.stringify(response.data.data));
+        localStorage.setItem("user", JSON.stringify(response.data.data));
         return response.data.data;
       }
-      throw new Error('No user data in response');
+      throw new Error("No user data in response");
     } catch (error) {
-      console.error('Error fetching current user:', error);
-      throw new Error('Failed to fetch current user. Please log in again.');
+      console.error("Error fetching current user:", error);
+      throw new Error("Failed to fetch current user. Please log in again.");
     }
   },
 
@@ -305,13 +346,15 @@ export const authApi = {
   async forgotPassword(data: { email: string }): Promise<void> {
     try {
       // This endpoint should be implemented in your backend
-      await api.post('/forgot-password', data);
+      await api.post("/forgot-password", data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.message || 'Failed to send password reset email';
+        const errorMessage =
+          error.response?.data?.message ||
+          "Failed to send password reset email";
         throw new Error(errorMessage);
       }
-      throw new Error('An unexpected error occurred');
+      throw new Error("An unexpected error occurred");
     }
   },
 };

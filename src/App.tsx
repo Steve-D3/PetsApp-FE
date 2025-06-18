@@ -18,6 +18,7 @@ import AppointmentsPage from "./pages/AppointmentsPage";
 import SettingsPage from "./pages/settings";
 import { useAuth } from "./features/auth/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import ResetPassword from "./features/auth/pages/ResetPassword";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -97,6 +98,7 @@ function App() {
                 </PublicRoute>
               }
             />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/dashboard"
               element={
