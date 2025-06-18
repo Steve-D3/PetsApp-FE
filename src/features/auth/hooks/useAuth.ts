@@ -17,6 +17,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   checkAuth: () => Promise<UserData | null>;
   setToken: (token: string) => void;
+  updateUser: (userData: Partial<UserData>) => void;
 }
 
 export interface UserData {
@@ -210,6 +211,10 @@ export const useAuth = (): AuthContextType => {
     [navigate, setError, setIsLoading]
   );
 
+  const updateUser = useCallback((userData: Partial<UserData>) => {
+    setUser((prevUser) => (prevUser ? { ...prevUser, ...userData } : null));
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -234,6 +239,7 @@ export const useAuth = (): AuthContextType => {
     logout,
     checkAuth,
     setToken,
+    updateUser,
   };
 
   return authContextValue;

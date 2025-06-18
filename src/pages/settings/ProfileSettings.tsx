@@ -5,12 +5,14 @@ import { Input } from "@/components/atoms/Input";
 import { Switch } from "@/components/atoms/Switch";
 import { Select } from "@/components/atoms/Select";
 import { Card } from "@/components/atoms/Card";
+import { toast } from "react-hot-toast";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/atoms/Tabs";
+export const API_URL = import.meta.env.VITE_API_URL;
 
 type Theme = "light" | "dark" | "system";
 type DateFormat = "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
@@ -23,8 +25,15 @@ type ProfileData = {
   confirmPassword: string;
 };
 
+interface UpdateProfileData {
+  name?: string;
+  email?: string;
+  password?: string; // Optional since it's only included when changing password
+  current_password?: string; // Optional since it's only included when changing password
+}
+
 export const ProfileSettings = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState("account");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -106,25 +115,78 @@ export const ProfileSettings = () => {
     e.preventDefault();
     if (!user) return;
 
+    // Validate password if changing password
+    if (
+      profileData.newPassword &&
+      profileData.newPassword !== profileData.confirmPassword
+    ) {
+      toast.error("New passwords don't match");
+      return;
+    }
+
+    // If changing password, require current password
+    if (profileData.newPassword && !profileData.password) {
+      toast.error("Please enter your current password to change it");
+      return;
+    }
+
     setIsSaving(true);
     setSaveSuccess(false);
 
     try {
-      // In a real app, you would call your API to update the user profile
-      // For now, we'll simulate a successful update
-      console.log("Updating profile with:", profileData);
+      // Prepare the data to send
+      const updateData: UpdateProfileData = {
+        name: profileData.name,
+        email: profileData.email,
+      };
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Only include password if it's being changed
+      if (profileData.newPassword) {
+        updateData.password = profileData.newPassword;
+        updateData.current_password = profileData.password;
+      }
 
-      // In a real app, you would update the user data in your auth context
-      // and refresh the user data from the server
+      const response = await fetch(`${API_URL}/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          responseData.message ||
+            `Failed to update profile: ${response.statusText}`
+        );
+      }
+
+      // Update the user in the auth context with the returned user data
+      if (responseData.user) {
+        updateUser(responseData.user);
+      }
+
+      // Show success message
       setSaveSuccess(true);
+      toast.success("Profile updated successfully");
 
-      // Hide success message after 3 seconds
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Reset password fields if password was changed
+      if (profileData.newPassword) {
+        setProfileData((prev) => ({
+          ...prev,
+          password: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      }
     } catch (error) {
       console.error("Failed to update profile:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update profile"
+      );
     } finally {
       setIsSaving(false);
     }
