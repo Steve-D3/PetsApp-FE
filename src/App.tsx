@@ -19,6 +19,7 @@ import SettingsPage from "./pages/settings";
 import { useAuth } from "./features/auth/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import ResetPassword from "./features/auth/pages/ResetPassword";
+import EmailVerify from "./features/auth/pages/EmailVerify";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -99,6 +100,7 @@ function App() {
               }
             />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/email-verify" element={<EmailVerify />} />
             <Route
               path="/dashboard"
               element={
