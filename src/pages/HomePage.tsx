@@ -13,7 +13,7 @@ export const HomePage = () => {
       <div className="max-w-md w-full space-y-8 text-center">
         <div>
           <h1 className="text-4xl font-bold text-gray-900 mb-6">
-            Welcome to PetsApp
+            Welcome to PawsApp
           </h1>
           <p className="text-xl text-gray-600 mb-8">
             Manage your pets with ease
