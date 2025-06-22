@@ -70,17 +70,6 @@ export const LoginPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (auth.isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-16 w-16 bg-blue-400 rounded-full mb-4"></div>
-          <div className="h-4 w-32 bg-blue-300 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-screen flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-md">

@@ -74,6 +74,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
+          {/* Public routes without header */}
           <Route element={<MainLayout showHeader={false} />}>
             <Route
               path="/"
@@ -99,10 +100,12 @@ function App() {
                 </PublicRoute>
               }
             />
-
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/email-verify" element={<EmailVerify />} />
+          </Route>
 
+          {/* Protected routes with header */}
+          <Route element={<MainLayout showHeader={true} />}>
             <Route
               path="/dashboard"
               element={
@@ -112,26 +115,18 @@ function App() {
               }
             />
             <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile/:petId"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/pets"
               element={
                 <ProtectedRoute>
                   <PetsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pets/:id"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />
@@ -151,12 +146,11 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-        <Toaster position="top-right" />
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </Router>
+      <Toaster />
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }
