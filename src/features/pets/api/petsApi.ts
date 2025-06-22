@@ -249,6 +249,8 @@ const petsApi = {
         throw new Error("No user ID found in the user object");
       }
 
+      console.log("Fetching pets for user ID:", userId);
+
       // Make the API request with the authorization header and user ID
       const response = await api.get<Pet[]>("/pets", {
         headers: {
@@ -263,11 +265,23 @@ const petsApi = {
         },
       });
 
+      // Log the response for debugging
+      console.log("Pets API response:", {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        requestUrl: response.config.url,
+        params: response.config.params,
+      });
+
       // Ensure we only return pets that belong to the current user
       const userPets = response.data.filter(
         (pet) => pet.owner && String(pet.owner.id) === String(userId)
       );
 
+      console.log(
+        `Filtered ${userPets.length} out of ${response.data.length} pets for user ${userId}`
+      );
       return userPets;
     } catch (error) {
       console.error("Error in getUserPets:", error);
@@ -331,6 +345,12 @@ const petsApi = {
       if ("sterilized" in requestData) {
         requestData.sterilized = requestData.sterilized ? 1 : 0;
       }
+
+      // Log the request data for debugging (without the actual base64 data)
+      console.log("Sending create request with data:", {
+        ...requestData,
+        photo: requestData.photo ? "[base64 image data]" : null,
+      });
 
       // CSRF token handling is now managed by the Axios interceptor in authApi.ts
 
@@ -416,6 +436,7 @@ const petsApi = {
     // Try each endpoint in sequence until one works
     for (const endpoint of endpoints) {
       try {
+        console.log(`Trying endpoint: ${endpoint} for vet ${vetId} on ${date}`);
         const response = await api.get(endpoint, {
           params: { date },
           validateStatus: (status) => status < 500, // Don't throw for 4xx errors
@@ -447,6 +468,9 @@ const petsApi = {
           continue;
         }
 
+        console.log(
+          `Successfully fetched ${slots.length} slots from ${endpoint}`
+        );
         return slots;
       } catch (error) {
         console.warn(`Error with endpoint ${endpoint}:`, error);
@@ -538,6 +562,14 @@ const petsApi = {
         requestData.sterilized = requestData.sterilized ? 1 : 0;
       }
 
+      // Log the request data for debugging (without the actual base64 data)
+      console.log("Sending update request with data:", {
+        ...requestData,
+        photo: requestData.photo ? "[base64 image data]" : null,
+      });
+
+      // CSRF token handling is now managed by the Axios interceptor in authApi.ts
+
       // Send the PUT request directly to the API endpoint
       const response = await api.put(`/pets/${petId}`, requestData, {
         headers: {
@@ -608,12 +640,17 @@ const petsApi = {
    */
   async getMedicalRecords(petId: string | number): Promise<MedicalRecord[]> {
     try {
+      console.log(`Fetching medical records for pet ID: ${petId}`);
       const response = await api.get<MedicalRecord[]>("/medical-records", {
         params: { pet_id: petId },
         timeout: 10000, // 10 second timeout
       });
+      console.log(
+        `Successfully fetched ${response.data.length} medical records`
+      );
       return response.data;
     } catch (error) {
+      console.error(`Error fetching medical records for pet ${petId}:`, error);
       if (axios.isAxiosError(error)) {
         if (error.code === "ECONNABORTED") {
           throw new Error("Request timed out while fetching medical records");

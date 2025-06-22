@@ -57,9 +57,9 @@ const PetsPage = () => {
   const handleAddPet = async (data: PetFormData) => {
     try {
       setIsSubmitting(true);
-      
+
       if (!data.user_id) {
-        throw new Error('User ID is required');
+        throw new Error("User ID is required");
       }
 
       const response = await petsApi.createPet(data);
@@ -165,7 +165,7 @@ const PetsPage = () => {
                     />
                   ) : (
                     <span className="text-6xl font-bold text-gray-400">
-                      {pet.name ? pet.name.charAt(0).toUpperCase() : ''}
+                      {pet.name ? pet.name.charAt(0).toUpperCase() : ""}
                     </span>
                   )}
                 </div>
