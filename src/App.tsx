@@ -123,7 +123,7 @@ function App() {
               }
             />
             <Route
-              path="/pets/:id"
+              path="/profile/:id"
               element={
                 <ProtectedRoute>
                   <ProfilePage />
