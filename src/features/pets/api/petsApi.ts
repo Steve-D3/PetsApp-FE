@@ -7,17 +7,17 @@ import type { PetFormData } from "../types";
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     if (!(file instanceof File)) {
-      reject(new Error('Invalid file provided'));
+      reject(new Error("Invalid file provided"));
       return;
     }
-    
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => {
-      if (typeof reader.result === 'string') {
+      if (typeof reader.result === "string") {
         resolve(reader.result);
       } else {
-        reject(new Error('Failed to read file as base64'));
+        reject(new Error("Failed to read file as base64"));
       }
     };
     reader.onerror = (error) => reject(error);
@@ -197,12 +197,12 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "https://test-backend.ddev.site/api",
   headers: {
     "Content-Type": "application/json",
-    "Accept": "application/json",
-    "X-Requested-With": "XMLHttpRequest"
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
   withCredentials: true, // Important for CORS with credentials
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
 });
 
 // Add request interceptor to include auth token
@@ -249,37 +249,25 @@ const petsApi = {
         throw new Error("No user ID found in the user object");
       }
 
-      console.log("Fetching pets for user ID:", userId);
-      
       // Make the API request with the authorization header and user ID
       const response = await api.get<Pet[]>("/pets", {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
         params: {
           owner_id: userId,
           // Add a timestamp to prevent caching
-          _t: Date.now()
-        }
+          _t: Date.now(),
+        },
       });
-      
-      // Log the response for debugging
-      console.log("Pets API response:", {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        requestUrl: response.config.url,
-        params: response.config.params
-      });
-      
+
       // Ensure we only return pets that belong to the current user
-      const userPets = response.data.filter(pet => 
-        pet.owner && String(pet.owner.id) === String(userId)
+      const userPets = response.data.filter(
+        (pet) => pet.owner && String(pet.owner.id) === String(userId)
       );
-      
-      console.log(`Filtered ${userPets.length} out of ${response.data.length} pets for user ${userId}`);
+
       return userPets;
     } catch (error) {
       console.error("Error in getUserPets:", error);
@@ -310,21 +298,26 @@ const petsApi = {
     try {
       // Create a copy of the data to modify
       const requestData: Record<string, unknown> = { ...data };
-      
+
       // Handle photo conversion if it exists
       if (data.photo !== undefined) {
         if ((data.photo as unknown) instanceof File) {
           // Convert File to base64
           try {
-            requestData.photo = await fileToBase64(data.photo as unknown as File);
+            requestData.photo = await fileToBase64(
+              data.photo as unknown as File
+            );
           } catch (error) {
-            console.error('Error converting file to base64:', error);
-            throw new Error('Failed to process the image');
+            console.error("Error converting file to base64:", error);
+            throw new Error("Failed to process the image");
           }
-        } else if (data.photo === null || data.photo === '') {
+        } else if (data.photo === null || data.photo === "") {
           // Explicitly set photo to null if it's an empty string or null
           requestData.photo = null;
-        } else if (typeof data.photo === 'string' && !data.photo.startsWith('data:image')) {
+        } else if (
+          typeof data.photo === "string" &&
+          !data.photo.startsWith("data:image")
+        ) {
           // If it's a string but not a base64 image, remove it
           delete requestData.photo;
         }
@@ -333,40 +326,30 @@ const petsApi = {
         // If photo is not provided, remove it from the request
         delete requestData.photo;
       }
-      
+
       // Convert sterilized from boolean to number if needed
-      if ('sterilized' in requestData) {
+      if ("sterilized" in requestData) {
         requestData.sterilized = requestData.sterilized ? 1 : 0;
       }
-      
-      // Log the request data for debugging (without the actual base64 data)
-      console.log('Sending create request with data:', {
-        ...requestData,
-        photo: requestData.photo ? '[base64 image data]' : null
-      });
-      
+
       // CSRF token handling is now managed by the Axios interceptor in authApi.ts
-      
+
       // Send the POST request to create a new pet
-      const response = await api.post(
-        '/pets',
-        requestData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          }
-        }
-      );
-      
+      const response = await api.post("/pets", requestData, {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
       return response.data;
     } catch (error) {
-      console.error('Error in createPet:', error);
+      console.error("Error in createPet:", error);
       if (axios.isAxiosError(error)) {
-        console.error('Response data:', error.response?.data);
-        console.error('Response status:', error.response?.status);
-        console.error('Response headers:', error.response?.headers);
+        console.error("Response data:", error.response?.data);
+        console.error("Response status:", error.response?.status);
+        console.error("Response headers:", error.response?.headers);
       }
       throw error;
     }
@@ -433,7 +416,6 @@ const petsApi = {
     // Try each endpoint in sequence until one works
     for (const endpoint of endpoints) {
       try {
-        console.log(`Trying endpoint: ${endpoint} for vet ${vetId} on ${date}`);
         const response = await api.get(endpoint, {
           params: { date },
           validateStatus: (status) => status < 500, // Don't throw for 4xx errors
@@ -465,9 +447,6 @@ const petsApi = {
           continue;
         }
 
-        console.log(
-          `Successfully fetched ${slots.length} slots from ${endpoint}`
-        );
         return slots;
       } catch (error) {
         console.warn(`Error with endpoint ${endpoint}:`, error);
@@ -525,21 +504,26 @@ const petsApi = {
     try {
       // Create a copy of the data to modify
       const requestData: Record<string, unknown> = { ...petData };
-      
+
       // Handle photo conversion if it exists
       if (petData.photo !== undefined) {
         if ((petData.photo as unknown) instanceof File) {
           // Convert File to base64
           try {
-            requestData.photo = await fileToBase64(petData.photo as unknown as File);
+            requestData.photo = await fileToBase64(
+              petData.photo as unknown as File
+            );
           } catch (error) {
-            console.error('Error converting file to base64:', error);
-            throw new Error('Failed to process the image');
+            console.error("Error converting file to base64:", error);
+            throw new Error("Failed to process the image");
           }
-        } else if (petData.photo === null || petData.photo === '') {
+        } else if (petData.photo === null || petData.photo === "") {
           // Explicitly set photo to null if it's an empty string or null
           requestData.photo = null;
-        } else if (typeof petData.photo === 'string' && !petData.photo.startsWith('data:image')) {
+        } else if (
+          typeof petData.photo === "string" &&
+          !petData.photo.startsWith("data:image")
+        ) {
           // If it's a string but not a base64 image, remove it
           delete requestData.photo;
         }
@@ -548,40 +532,28 @@ const petsApi = {
         // If photo is not provided, remove it from the request
         delete requestData.photo;
       }
-      
+
       // Convert sterilized from boolean to number if needed
-      if ('sterilized' in requestData) {
+      if ("sterilized" in requestData) {
         requestData.sterilized = requestData.sterilized ? 1 : 0;
       }
-      
-      // Log the request data for debugging (without the actual base64 data)
-      console.log('Sending update request with data:', {
-        ...requestData,
-        photo: requestData.photo ? '[base64 image data]' : null
-      });
-      
-      // CSRF token handling is now managed by the Axios interceptor in authApi.ts
-      
+
       // Send the PUT request directly to the API endpoint
-      const response = await api.put(
-        `/pets/${petId}`,
-        requestData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          }
-        }
-      );
-      
+      const response = await api.put(`/pets/${petId}`, requestData, {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
       return response.data;
     } catch (error) {
-      console.error('Error in updatePet:', error);
+      console.error("Error in updatePet:", error);
       if (axios.isAxiosError(error)) {
-        console.error('Response data:', error.response?.data);
-        console.error('Response status:', error.response?.status);
-        console.error('Response headers:', error.response?.headers);
+        console.error("Response data:", error.response?.data);
+        console.error("Response status:", error.response?.status);
+        console.error("Response headers:", error.response?.headers);
       }
       throw error;
     }
@@ -636,18 +608,15 @@ const petsApi = {
    */
   async getMedicalRecords(petId: string | number): Promise<MedicalRecord[]> {
     try {
-      console.log(`Fetching medical records for pet ID: ${petId}`);
       const response = await api.get<MedicalRecord[]>("/medical-records", {
         params: { pet_id: petId },
         timeout: 10000, // 10 second timeout
       });
-      console.log(`Successfully fetched ${response.data.length} medical records`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching medical records for pet ${petId}:`, error);
       if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          throw new Error('Request timed out while fetching medical records');
+        if (error.code === "ECONNABORTED") {
+          throw new Error("Request timed out while fetching medical records");
         } else if (error.response) {
           // The request was made and the server responded with a status code
           // that falls out of the range of 2xx
@@ -656,7 +625,7 @@ const petsApi = {
           );
         } else if (error.request) {
           // The request was made but no response was received
-          throw new Error('No response received from the server');
+          throw new Error("No response received from the server");
         }
       }
       throw error;

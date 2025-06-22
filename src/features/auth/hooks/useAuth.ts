@@ -130,9 +130,7 @@ export const useAuth = (): AuthContextType => {
       setError(null);
 
       try {
-        console.log("Attempting to login with credentials:", credentials);
         const { user: userData, token } = await authApi.login(credentials);
-        console.log("Login response in useAuth:", { userData, token });
 
         if (!userData || !token) {
           throw new Error(
@@ -140,20 +138,12 @@ export const useAuth = (): AuthContextType => {
           );
         }
 
-        console.log("Setting user data:", userData);
-        console.log("Setting token:", token);
-
-        // Ensure the token is set in the auth state and localStorage
         setToken(token);
-
-        // Set the user data in the auth state
         setUser(userData);
         setIsAuthenticated(true);
 
-        // Store user data in localStorage (as a fallback)
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // Redirect to dashboard after successful login
         navigate("/dashboard");
 
         return { data: userData, token };

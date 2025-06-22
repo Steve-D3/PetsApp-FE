@@ -110,15 +110,11 @@ export const AppointmentDetailModal = ({
       setError(null);
 
       try {
-        console.log("Fetching appointment with ID:", appointmentId);
-
         // Add a delay to help with debugging
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Use the configured API client to ensure proper auth headers and base URL
-        console.log("Fetching appointment with ID:", appointmentId);
         const response = await petsApi.getAppointmentById(appointmentId);
-        console.log("Raw API response:", response);
 
         // The API client should already handle the response structure, but let's be defensive
         const responseData = response;
@@ -127,17 +123,6 @@ export const AppointmentDetailModal = ({
           throw new Error("No appointment data found in the response");
         }
 
-        // Log the structure for debugging
-        console.log("Appointment data structure:", {
-          hasPet: !!responseData.pet,
-          hasVet: !!responseData.veterinarian,
-          hasLocation: !!responseData.veterinarian.clinic?.address,
-          keys: Object.keys(responseData),
-        });
-
-        console.log("Appointment data received:", responseData);
-
-        // Helper function to safely access nested properties with type safety
         const safeGet = <T,>(
           obj: unknown,
           path: string,
@@ -217,7 +202,6 @@ export const AppointmentDetailModal = ({
           // Location information with fallbacks
         };
 
-        console.log("Transformed appointment data:", transformedData);
         setAppointment(transformedData);
       } catch (error) {
         const err = error as AxiosError | Error;

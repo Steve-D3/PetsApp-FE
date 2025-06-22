@@ -74,7 +74,6 @@ export const ProfileSettings = () => {
       const imageUrl = URL.createObjectURL(file);
       setProfileImage(imageUrl);
       // Here you would typically call an API to update the user's profile image
-      console.log("Uploading image...", file);
     } catch (error) {
       console.error("Error uploading image:", error);
     } finally {

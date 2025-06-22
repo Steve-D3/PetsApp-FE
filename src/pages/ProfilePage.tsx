@@ -70,8 +70,6 @@ const ProfilePage = () => {
           navigate("/login");
           return;
         }
-
-        console.log(petId);
         const response = await petsApi.getPetById(Number(petId));
         setPet(response);
         setError(null);
@@ -108,9 +106,7 @@ const ProfilePage = () => {
     const fetchMedicalRecords = async () => {
       try {
         setIsLoadingRecords(true);
-        console.log(`Fetching medical records for pet ID: ${pet.id}`);
         const records = await petsApi.getMedicalRecords(pet.id);
-        console.log(`Successfully fetched ${records.length} medical records`);
 
         // Only update state if component is still mounted
         if (isMounted) {
@@ -120,7 +116,6 @@ const ProfilePage = () => {
       } catch (error) {
         // Don't log cancellation errors
         if (axios.isCancel(error)) {
-          console.log("Request canceled:", error.message);
           return;
         }
 

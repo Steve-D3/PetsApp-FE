@@ -1,7 +1,10 @@
+// src/features/auth/pages/RegisterPage.tsx
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import useAuth from "../hooks/useAuth";
+import { Button } from "@/components/atoms/Button";
+import { Input } from "@/components/atoms/Input";
 
 type RegisterForm = {
   name: string;
@@ -20,29 +23,15 @@ export const RegisterPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const auth = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Check for registration success message from navigation state
   useEffect(() => {
     const state = location.state as {
       registrationSuccess?: boolean;
       message?: string;
     };
     if (state?.registrationSuccess && state.message) {
-      toast.success(state.message, {
-        duration: 5000, // Show for 5 seconds
-        position: "top-center",
-        icon: "👋",
-        style: {
-          background: "#4CAF50",
-          color: "#fff",
-          padding: "16px",
-          borderRadius: "8px",
-          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-          fontSize: "1.05rem",
-          minWidth: "300px",
-        },
-      });
-      // Clear the state to avoid showing the message again on refresh
+      toast.success(state.message, { duration: 5000 });
       window.history.replaceState({}, "");
     }
   }, [location]);
@@ -50,7 +39,6 @@ export const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form
     if (
       !formData.name ||
       !formData.email ||
@@ -62,29 +50,18 @@ export const RegisterPage = () => {
     }
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords don't match!");
+      toast.error("Passwords do not match");
       return;
     }
 
     if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
+      toast.error("Password must be at least 6 characters");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      console.log("Submitting registration with:", {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        password_confirmation: formData.confirmPassword,
-      });
-
-      // Show loading toast
-      const loadingToast = toast.loading("Creating your account...");
-
-      // The auth.register function will handle the navigation to login page
       await auth.register({
         name: formData.name,
         email: formData.email,
@@ -92,44 +69,18 @@ export const RegisterPage = () => {
         password_confirmation: formData.confirmPassword,
       });
 
-      // Dismiss loading toast (success toast will be shown after navigation)
-      toast.dismiss(loadingToast);
-
-      // Clear the form
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
+      // Show success message and redirect to login
+      navigate("/login", {
+        state: {
+          registrationSuccess: true,
+          message:
+            "Registration successful! Please check your email to verify your account.",
+        },
+        replace: true,
       });
     } catch (error) {
-      console.error("Registration error:", error);
-      let errorMessage = "Registration failed";
-
-      if (error instanceof Error) {
-        // Handle API validation errors
-        if (error.message.includes("422")) {
-          try {
-            // Try to extract JSON from the error message
-            const jsonMatch = error.message.match(/\{.*\}/s);
-            if (jsonMatch) {
-              const errorData = JSON.parse(jsonMatch[0]);
-              errorMessage =
-                Object.values(errorData.errors || {})
-                  .flat()
-                  .join(" ") || error.message;
-            } else {
-              errorMessage = error.message;
-            }
-          } catch {
-            // If JSON parsing fails, use the original error message
-            errorMessage = error.message;
-          }
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
+      const errorMessage =
+        error instanceof Error ? error.message : "Registration failed";
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -138,146 +89,152 @@ export const RegisterPage = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Show loading state while checking authentication
   if (auth.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-16 w-16 bg-purple-400 rounded-full mb-4"></div>
+          <div className="h-4 w-32 bg-purple-300 rounded"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create a new account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{" "}
-            <Link
-              to="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              sign in to your account
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={handleChange}
-              />
+    <div className="h-screen flex items-center justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-center">
+            <div className="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-12 w-12 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
             </div>
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="confirm-password" className="sr-only">
-                Confirm Password
-              </label>
-              <input
-                id="confirm-password"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
-            </div>
+            <h1 className="text-2xl font-bold text-white">Create Account</h1>
+            <p className="text-purple-100 mt-1">Join our community today</p>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isSubmitting
-                  ? "bg-blue-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
-            >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Creating account...
-                </>
-              ) : (
-                "Create account"
-              )}
-            </button>
+          <div className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Input
+                  label="Full Name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="Email address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="Password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating account..." : "Create Account"}
+                </Button>
+              </div>
+            </form>
+
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">
+                    Already have an account?
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Link
+                  to="/login"
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Sign in
+                </Link>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">
+            By registering, you agree to our{" "}
+            <Link to="/terms" className="text-purple-600 hover:text-purple-500">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              to="/privacy"
+              className="text-purple-600 hover:text-purple-500"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -74,7 +74,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          <Route element={<MainLayout />}>
+          <Route element={<MainLayout showHeader={false} />}>
             <Route
               path="/"
               element={
@@ -99,8 +99,10 @@ function App() {
                 </PublicRoute>
               }
             />
+
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/email-verify" element={<EmailVerify />} />
+
             <Route
               path="/dashboard"
               element={

@@ -340,9 +340,6 @@ export const AppointmentsPage = () => {
   const handleEventClick = (clickInfo: EventClickArg) => {
     // Extract the appointment ID from the event
     const event = clickInfo.event;
-    console.log("Calendar event clicked:", event);
-    console.log("Event ID:", event.id);
-    console.log("Extended props:", event.extendedProps);
 
     if (event.id) {
       setSelectedAppointmentId(event.id);

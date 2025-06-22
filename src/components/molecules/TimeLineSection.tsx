@@ -20,18 +20,13 @@ export const TimelineSection = ({
     <div className={className}>
       <h3 className="text-base font-semibold text-gray-900 mb-3">{title}</h3>
       <div className="divide-y divide-gray-100">
-        {items.map(
-          (item) => (
-            console.log(item.id),
-            (
-              <TimelineItem
-                key={item.id}
-                {...item}
-                onClick={() => onItemClick?.(item)}
-              />
-            )
-          )
-        )}
+        {items.map((item) => (
+          <TimelineItem
+            key={item.id}
+            {...item}
+            onClick={() => onItemClick?.(item)}
+          />
+        ))}
       </div>
     </div>
   );

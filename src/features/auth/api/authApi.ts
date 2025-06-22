@@ -147,10 +147,6 @@ export const authApi = {
 
       const response = await api.post<LoginApiResponse>("/login", credentials);
 
-      // Log the response for debugging
-      console.log("Login response:", response.data);
-
-      // Extract token and user data from the response
       const { access_token: token, user } = response.data;
 
       if (!token || !user) {

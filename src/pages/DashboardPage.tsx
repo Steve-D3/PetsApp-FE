@@ -24,13 +24,13 @@ const DashboardPage = () => {
   useEffect(() => {
     // If still loading auth state, do nothing
     if (isAuthLoading) return;
-    
+
     // If not authenticated, redirect to login
     if (!isAuthenticated) {
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
-    
+
     // If we get here, we're authenticated and can fetch data
 
     const fetchPetsAndAppointments = async () => {
@@ -39,9 +39,9 @@ const DashboardPage = () => {
         setError(null);
 
         // Check if we have a token
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          throw new Error('No authentication token found. Please log in.');
+          throw new Error("No authentication token found. Please log in.");
         }
 
         // Fetch pets and their appointments
@@ -100,7 +100,6 @@ const DashboardPage = () => {
             // Don't fail the whole page if appointments fail
           }
         }
-        console.log(localStorage.getItem("token"));
         setError(null);
       } catch (error) {
         if (error instanceof Error) {
@@ -145,7 +144,10 @@ const DashboardPage = () => {
       <div className="p-4">
         <ErrorDisplay
           error={error}
-          showLoginButton={error.toLowerCase().includes("log in") || error.toLowerCase().includes("session")}
+          showLoginButton={
+            error.toLowerCase().includes("log in") ||
+            error.toLowerCase().includes("session")
+          }
         />
       </div>
     );
