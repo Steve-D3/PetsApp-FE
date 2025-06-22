@@ -21,11 +21,13 @@ export function PetForm({
   isLoading = false,
   initialData = {},
 }: PetFormProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  // Handle both string URLs and File objects for the preview
+  // Photo state is now purely for UI purposes
   const [previewUrl, setPreviewUrl] = useState<string | null>(
-    typeof initialData.photo === 'string' ? initialData.photo : null
+    typeof initialData.photo === "string" ? initialData.photo : null
   );
+
+  // Keep track of file input for UI reset
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -42,7 +44,7 @@ export function PetForm({
   });
 
   // Watch the sterilized field to handle UI updates
-  const sterilizedValue = watch('sterilized');
+  const sterilizedValue = watch("sterilized");
 
   const previousInitialData = useRef<Partial<PetFormData> | undefined>(
     undefined
@@ -64,21 +66,18 @@ export function PetForm({
   }, [reset, initialData]);
 
   const handleFileChange = (file: File | null) => {
-    setSelectedFile(file);
-
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setPreviewUrl(base64String);
-        // Set the photo field with the base64 string
-        setValue("photo", base64String, { shouldValidate: true });
+        setPreviewUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
     } else {
       setPreviewUrl(null);
-      // When clearing the file, set photo to null or empty string based on your API requirements
-      setValue("photo", null, { shouldValidate: true });
+      // Reset file input if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -93,29 +92,20 @@ export function PetForm({
       name: data.name.trim(),
       species: data.species.trim(),
       gender: data.gender as "Male" | "Female",
-      // Include the photo from preview URL if no new file was selected
-      // Ensure we only include the photo if it's a string (URL or base64)
-      photo: typeof previewUrl === 'string' ? previewUrl : 
-             typeof data.photo === 'string' ? data.photo : null,
+      // Explicitly set photo to null since we're not sending photo data
+      photo: null,
     };
 
-    // If there's a selected file, we should handle the file upload here
-    // and then call onSubmit with the response URL
-    if (selectedFile) {
-      // In a real app, you would upload the file to your server here
-      // and get back a URL, then include that URL in the form data
-      // For now, we're just using the base64 data URL
-      formData.photo = previewUrl || "";
-    }
-
+    // Submit the form without photo data
     onSubmit(formData);
   };
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Photo Upload */}
+      {/* Photo Upload - Visual Only */}
       <div className="space-y-4">
         <FileInput
+          ref={fileInputRef}
           label="Pet Photo"
           id="pet-photo"
           onFileSelect={handleFileChange}
@@ -185,7 +175,11 @@ export function PetForm({
             type="checkbox"
             id="sterilized"
             checked={!!sterilizedValue}
-            onChange={(e) => setValue('sterilized', e.target.checked ? 1 : 0, { shouldDirty: true })}
+            onChange={(e) =>
+              setValue("sterilized", e.target.checked ? 1 : 0, {
+                shouldDirty: true,
+              })
+            }
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <label htmlFor="sterilized" className="text-sm text-gray-700">
